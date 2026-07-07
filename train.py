@@ -171,7 +171,13 @@ def train_alphazero():
         player_stack = jnp.stack(buffer_players)    # (40, 128)
         
         # Pobieramy FAKTYCZNE nagrody z końca bitew
-        final_rewards = state.rewards               # (128, 2)
+        base_rewards = state.rewards              # (128, 2)
+        is_draw = ~state.terminated
+        penalty = jnp.where(is_draw, -0.5, 0.0)
+        draw_penalties = jnp.stack([penalty, penalty], axis=-1)
+        
+        # Dodajemy kary do końcowych nagród
+        final_rewards = base_rewards + draw_penalties
         
         # Przypisujemy kto wygrał do każdej tury wstecz
         v_stack = assign_values(player_stack, final_rewards) # (40, 128)
