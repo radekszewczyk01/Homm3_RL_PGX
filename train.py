@@ -162,10 +162,14 @@ def train_alphazero():
         buffer_obs, buffer_policies, buffer_players = [], [], []
         replay_frames = [] # NOWOŚĆ: Lista na zrzuty klatek z pierwszej gry
         
+        total_blue_wins = 0
+        total_red_wins = 0
+        total_games_played = 0
+        
         rng, init_key = jax.random.split(rng)
         init_keys = jax.random.split(init_key, BATCH_SIZE)
         state = vmap_init(init_keys)
-
+        
         replay_frames.append({
             "pos_idx": state.pos_idx[0], "alive": state.alive[0],
             "count": state.count[0], "side": state.side[0],
@@ -187,6 +191,9 @@ def train_alphazero():
                 "active_unit_idx": state.active_unit_idx[0],
                 "terminated": state.terminated[0], "rewards": state.rewards[0]
             })
+            total_blue_wins += int(jnp.sum(state.terminated & (state.rewards[:, 0] > 0)))
+            total_red_wins += int(jnp.sum(state.terminated & (state.rewards[:, 1] > 0)))
+            total_games_played += int(jnp.sum(state.terminated))
             
         # --- ZAPIS POWTÓRKI NA DYSK ---
         # Po zakończeniu pętli for step (czyli gra się skończyła), zapisujemy plik .pkl
@@ -235,18 +242,10 @@ def train_alphazero():
         t1 = time.time()
 
         # --- STATYSTYKI ZWYCIĘSTW ---
-        # final_rewards to macierz (BATCH_SIZE, 2). Szukamy nagród dodatnich.
-        blue_wins = jnp.sum(final_rewards[:, 0] > 0)
-        red_wins = jnp.sum(final_rewards[:, 1] > 0)
-        
-        # Remisy (albo gra nie zdążyła się skończyć w STEPS_PER_GEN, albo padł rzadki podwójny KO)
-        draws = BATCH_SIZE - (blue_wins + red_wins)
-        
-        blue_pct = (blue_wins / BATCH_SIZE) * 100
-        red_pct = (red_wins / BATCH_SIZE) * 100
-        draw_pct = (draws / BATCH_SIZE) * 100
+        blue_pct = (total_blue_wins / max(1, total_games_played)) * 100
+        red_pct = (total_red_wins / max(1, total_games_played)) * 100
 
-        print(f"Gen {gen:02d}/{GENERATIONS} | Czas: {t1-t0:.2f}s | Loss: {loss:.4f} | Niebieski: {blue_pct:02.0f}% | Czerwony: {red_pct:02.0f}% | Remis: {draw_pct:02.0f}%")
+        print(f"Gen {gen:02d}/{GENERATIONS} | Rozegrano gier: {total_games_played} | Niebieski: {blue_pct:02.0f}% | Czerwony: {red_pct:02.0f}%") {red_pct:02.0f}% | Remis: {draw_pct:02.0f}%")
 
     print("\n✅ Trening zakończony!")
     print("\n💾 Zapisuję wytrenowany mózg na dysk...")
