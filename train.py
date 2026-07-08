@@ -5,6 +5,9 @@ import mctx
 import optax
 import time
 from flax import serialization
+import pickle
+import os
+from datetime import datetime
 
 # Importujemy nasz silnik
 from jax_engine import HoMM3Env, BOARD_ROWS, BOARD_COLS, MAX_ACTIONS
@@ -122,6 +125,15 @@ def train_alphazero():
     BATCH_SIZE = 128  # Gier naraz
     STEPS_PER_GEN = 150 # Długość pojedynczej gry
     GENERATIONS = 40   # Ilość cykli (Self-play -> Trening)
+
+    # --- NOWOŚĆ: TWORZENIE FOLDERU NA POWTÓRKI ---
+    # Pobieramy obecny czas i formatujemy go np. "2026-07-08_19-50-30"
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    replay_dir = f"replays_{timestamp}"
+    
+    # Tworzymy folder (exist_ok=True zapobiega błędom, jeśli folder już istnieje)
+    os.makedirs(replay_dir, exist_ok=True)
+    print(f"📁 Utworzono folder na powtórki: {replay_dir}")
     
     rng = jax.random.PRNGKey(42)
     rng, net_key = jax.random.split(rng)
@@ -148,21 +160,41 @@ def train_alphazero():
         
         # --- FAZA 1: SELF-PLAY (Zbieranie danych do bufora) ---
         buffer_obs, buffer_policies, buffer_players = [], [], []
+        replay_frames = [] # NOWOŚĆ: Lista na zrzuty klatek z pierwszej gry
         
         rng, init_key = jax.random.split(rng)
         init_keys = jax.random.split(init_key, BATCH_SIZE)
         state = vmap_init(init_keys)
 
+        replay_frames.append({
+            "pos_idx": state.pos_idx[0], "alive": state.alive[0],
+            "count": state.count[0], "side": state.side[0],
+            "active_unit_idx": state.active_unit_idx[0],
+            "terminated": state.terminated[0], "rewards": state.rewards[0]
+        })
+
         for step in range(STEPS_PER_GEN):
-            # Zapisujemy, KTO gra i JAK wygląda plansza PRZED ruchem
             buffer_players.append(state.current_player)
             buffer_obs.append(state.observation)
             
-            # Agent wykonuje wektorowy krok z MCTS
             state, policy_targets, _, rng = play_step_with_mcts(state, net_params, rng)
-            
-            # Zapisujemy, co wymyślił MCTS
             buffer_policies.append(policy_targets)
+            
+            # Zapisz wskaźniki JAX (GPU) PO ruchu (BEZ jax.device_get!)
+            replay_frames.append({
+                "pos_idx": state.pos_idx[0], "alive": state.alive[0],
+                "count": state.count[0], "side": state.side[0],
+                "active_unit_idx": state.active_unit_idx[0],
+                "terminated": state.terminated[0], "rewards": state.rewards[0]
+            })
+            
+        # --- ZAPIS POWTÓRKI NA DYSK ---
+        # Po zakończeniu pętli for step (czyli gra się skończyła), zapisujemy plik .pkl
+        replay_frames_cpu = jax.device_get(replay_frames)
+        
+        filepath = os.path.join(replay_dir, f"replay_gen_{gen:02d}.pkl")
+        with open(filepath, "wb") as f:
+            pickle.dump(replay_frames_cpu, f)
 
         # --- FAZA 2: ZAMKNIĘCIE GIER I PRZYPISANIE WARTOŚCI ---
         # Konwertujemy listy na tensory JAX
@@ -171,12 +203,15 @@ def train_alphazero():
         player_stack = jnp.stack(buffer_players)    # (40, 128)
         
         # Pobieramy FAKTYCZNE nagrody z końca bitew
-        base_rewards = state.rewards              # (128, 2)
+        base_rewards = state.rewards               # (128, 2)
+        
+        # --- NOWOŚĆ: BRUTALNA KARA ZA REMIS ---
+        # Jeśli gra dobiła do limitu kroków (jest remis), dowalamy obu graczom -0.95.
+        # Jest to prawie tak bolesne jak przegrana (-1.0). 
         is_draw = ~state.terminated
-        penalty = jnp.where(is_draw, -0.5, 0.0)
+        penalty = jnp.where(is_draw, -0.95, 0.0)
         draw_penalties = jnp.stack([penalty, penalty], axis=-1)
         
-        # Dodajemy kary do końcowych nagród
         final_rewards = base_rewards + draw_penalties
         
         # Przypisujemy kto wygrał do każdej tury wstecz
