@@ -122,9 +122,9 @@ def play_step_with_mcts(state, params, key):
 # 4. GŁÓWNA PĘTLA TRENINGOWA (META-LOOP)
 # ===========================================================================
 def train_alphazero():
-    BATCH_SIZE = 150  # Gier naraz
-    STEPS_PER_GEN = 250 # Długość pojedynczej gry
-    GENERATIONS = 30   # Ilość cykli (Self-play -> Trening)
+    BATCH_SIZE = 90  # Gier naraz
+    STEPS_PER_GEN = 350 # Długość pojedynczej gry
+    GENERATIONS = 15   # Ilość cykli (Self-play -> Trening)
 
     # --- NOWOŚĆ: TWORZENIE FOLDERU NA POWTÓRKI ---
     # Pobieramy obecny czas i formatujemy go np. "2026-07-08_19-50-30"
