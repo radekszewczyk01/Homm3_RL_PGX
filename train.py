@@ -169,7 +169,7 @@ def train_alphazero():
         rng, init_key = jax.random.split(rng)
         init_keys = jax.random.split(init_key, BATCH_SIZE)
         state = vmap_init(init_keys)
-        
+
         replay_frames.append({
             "pos_idx": state.pos_idx[0], "alive": state.alive[0],
             "count": state.count[0], "side": state.side[0],
@@ -241,11 +241,21 @@ def train_alphazero():
         loss.block_until_ready()
         t1 = time.time()
 
-        # --- STATYSTYKI ZWYCIĘSTW ---
-        blue_pct = (total_blue_wins / max(1, total_games_played)) * 100
-        red_pct = (total_red_wins / max(1, total_games_played)) * 100
+        # --- STATYSTYKI ZWYCIĘSTW (Poprawione i zabezpieczone) ---
+        # Gry, które nie skończyły się po 150 krokach, traktujemy jako remisy (timeouts)
+        total_draws = int(jnp.sum(~state.terminated))
+        
+        # Całkowita liczba bitew, które podjęły próbę walki w tej generacji
+        total_all_games = total_games_played + total_draws
 
-        print(f"Gen {gen:02d}/{GENERATIONS} | Rozegrano gier: {total_games_played} | Niebieski: {blue_pct:02.0f}% | Czerwony: {red_pct:02.0f}%") {red_pct:02.0f}% | Remis: {draw_pct:02.0f}%")
+        # Obliczamy procenty względem WSZYSTKICH rozpoczętych gier
+        blue_pct = (total_blue_wins / max(1, total_all_games)) * 100
+        red_pct = (total_red_wins / max(1, total_all_games)) * 100
+        draw_pct = (total_draws / max(1, total_all_games)) * 100
+
+        # Czysty, czytelny print bez błędów składniowych
+        print(f"Gen {gen:02d}/{GENERATIONS} | Wszystkich gier: {total_all_games:<3} (Ukończone: {total_games_played:<3}) | "
+              f"Niebieski: {blue_pct:02.0f}% | Czerwony: {red_pct:02.0f}% | Remis: {draw_pct:02.0f}%")
 
     print("\n✅ Trening zakończony!")
     print("\n💾 Zapisuję wytrenowany mózg na dysk...")
