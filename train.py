@@ -241,21 +241,17 @@ def train_alphazero():
         loss.block_until_ready()
         t1 = time.time()
 
-        # --- STATYSTYKI ZWYCIĘSTW (Poprawione i zabezpieczone) ---
-        # Gry, które nie skończyły się po 150 krokach, traktujemy jako remisy (timeouts)
-        total_draws = int(jnp.sum(~state.terminated))
+        # --- STATYSTYKI ZWYCIĘSTW (Czyste Liczby) ---
         
-        # Całkowita liczba bitew, które podjęły próbę walki w tej generacji
-        total_all_games = total_games_played + total_draws
-
-        # Obliczamy procenty względem WSZYSTKICH rozpoczętych gier
-        blue_pct = (total_blue_wins / max(1, total_all_games)) * 100
-        red_pct = (total_red_wins / max(1, total_all_games)) * 100
-        draw_pct = (total_draws / max(1, total_all_games)) * 100
-
-        # Czysty, czytelny print bez błędów składniowych
-        print(f"Gen {gen:02d}/{GENERATIONS} | Wszystkich gier: {total_all_games:<3} (Ukończone: {total_games_played:<3}) | "
-              f"Niebieski: {blue_pct:02.0f}% | Czerwony: {red_pct:02.0f}% | Remis: {draw_pct:02.0f}%")
+        # Gry, które dotrwały do 150 kroku i dostały naszą karę -0.95
+        timeouts = int(jnp.sum(~state.terminated))
+        
+        # Gry, które skończyły się w trakcie pętli, ale NIKT nie dostał nagrody dodatniej
+        internal_draws = total_games_played - (total_blue_wins + total_red_wins)
+        
+        print(f"Gen {gen:02d}/{GENERATIONS} | "
+              f"Wygrane (Niebieski): {total_blue_wins:<4} | Wygrane (Czerwony): {total_red_wins:<4} | "
+              f"Remis (w trakcie): {internal_draws:<4} | Przerwane (koniec czasu): {timeouts}")
 
     print("\n✅ Trening zakończony!")
     print("\n💾 Zapisuję wytrenowany mózg na dysk...")
