@@ -221,6 +221,12 @@ def make_sharding():
 
 
 def shard_keys(key, batch, sharding):
+    n_dev = len(jax.devices())
+    if batch % n_dev:
+        raise ValueError(
+            f"wsad {batch} nie dzieli sie przez liczbe urzadzen {n_dev}; "
+            f"najblizsze poprawne: {batch // n_dev * n_dev} lub "
+            f"{(batch // n_dev + 1) * n_dev}")
     return jax.device_put(jax.random.split(key, batch), sharding)
 
 
@@ -507,9 +513,10 @@ def selftest():
     print("  [3] silnik razem z mctx ... ", end="", flush=True)
     try:
         env, mod = load_engine("v3")
-        sharding, _ = make_sharding()
-        r = bench_mcts(env, mod, 8, 4, sharding, 1, False, False)
-        print(f"OK ({r['decisions_per_s']:.1f} decyzji/s przy wsadzie 8)")
+        sharding, n_dev = make_sharding()
+        b = 8 * n_dev                      # wsad musi dzielic sie przez liczbe urzadzen
+        r = bench_mcts(env, mod, b, 4, sharding, 1, False, False)
+        print(f"OK ({r['decisions_per_s']:.1f} decyzji/s przy wsadzie {b})")
     except Exception as exc:
         print(f"BLAD: {type(exc).__name__}: {exc}")
         traceback.print_exc()
@@ -550,6 +557,12 @@ def run_suite(args):
     print("=" * 74)
 
     batches = args.batches or default_batches(n_dev, on_gpu)
+    bad = [b for b in batches if b % n_dev]
+    if bad:
+        print(f"\n  Odrzucone wsady (niepodzielne przez {n_dev}): {bad}")
+        batches = [b for b in batches if b % n_dev == 0]
+    if not batches:
+        sys.exit(f"Zaden wsad nie dzieli sie przez {n_dev} urzadzen.")
     outfile = args.out or f"bench_{args.tag}_{args.engine}.json"
 
     results = {

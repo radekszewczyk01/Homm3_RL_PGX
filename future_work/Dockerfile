@@ -39,18 +39,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m pip install --no-cache-dir --upgrade pip==24.3.1
 
 # --- rdzen: JAX z obsluga CUDA 12 -----------------------------------
-RUN python3 -m pip install --no-cache-dir \
-        "jax[cuda12]==0.4.38"
+RUN python3 -m pip install --no-cache-dir "jax[cuda12]==0.6.2"
 
-# --- ekosystem RL ---------------------------------------------------
-#  numpy < 2 : pgx i czesc zaleznosci nie przeszly jeszcze na numpy 2.x
 RUN python3 -m pip install --no-cache-dir \
-        "numpy==1.26.4" \
-        "chex==0.1.88" \
-        "flax==0.10.2" \
-        "optax==0.2.4" \
+        "numpy==2.2.6" \
+        "chex==0.1.90" \
+        "flax==0.10.7" \
+        "optax==0.2.8" \
         "mctx==0.0.5" \
-        "pgx==2.4.2"
+        "pgx==2.6.0"
 
 # --- narzedzia pomiarowe i wykresy ----------------------------------
 RUN python3 -m pip install --no-cache-dir \
