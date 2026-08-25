@@ -381,15 +381,11 @@ def build_mcts(env, mod, batch, n_sims):
                 states.legal_action_mask, logits, -1e9).astype(jnp.float32),
             value=value.astype(jnp.float32),
             embedding=states)
-        common = dict(num_simulations=n_sims, max_depth=max_depth,
-                      invalid_actions=~states.legal_action_mask)
-        if policy == "gumbel":
-            return mctx.gumbel_muzero_policy(
-                params, key, root, recurrent_fn,
-                max_num_considered_actions=16, **common).action
-        return mctx.muzero_policy(
+        mctx.gumbel_muzero_policy(
             params, key, root, recurrent_fn,
-            dirichlet_fraction=0.25, **common).action
+            num_simulations=n_sims,
+            max_num_considered_actions=16,
+            invalid_actions=~states.legal_action_mask)
 
     return decide, params
 
