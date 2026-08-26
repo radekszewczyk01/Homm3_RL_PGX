@@ -202,12 +202,27 @@ class PowerSampler(threading.Thread):
         self.interval = interval
         self._stop_evt = threading.Event()
         self.power, self.util = [], []
+
+        # nvidia-smi i pynvml enumeruja WSZYSTKIE karty, takze ukryte przez
+        # CUDA_VISIBLE_DEVICES. Bez filtrowania pomiar sumuje moc kart
+        # bezczynnych (oraz cudzego obciazenia), co zawyza J/decyzje
+        # o czynnik rowny liczbie kart w maszynie.
+        vis = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+        self._visible = None
+        if vis and vis.strip() and vis.strip() != "(wszystkie)":
+            try:
+                self._visible = [int(x) for x in vis.split(",") if x.strip()]
+            except ValueError:
+                self._visible = None
+
         try:
             import pynvml
             pynvml.nvmlInit()
             self._nvml = pynvml
+            n = pynvml.nvmlDeviceGetCount()
+            idx = self._visible if self._visible is not None else range(n)
             self._handles = [pynvml.nvmlDeviceGetHandleByIndex(i)
-                             for i in range(pynvml.nvmlDeviceGetCount())]
+                             for i in idx if i < n]
         except Exception:
             self._nvml = None
             self._handles = []
@@ -224,6 +239,9 @@ class PowerSampler(threading.Thread):
                     self.util.append(float(u))
                 else:
                     rows = nvidia_query(["power.draw", "utilization.gpu"])
+                    if self._visible is not None:
+                        rows = [r for i, r in enumerate(rows)
+                                if i in self._visible]
                     if rows:
                         self.power.append(sum(float(r[0]) for r in rows))
                         self.util.append(
@@ -243,6 +261,7 @@ class PowerSampler(threading.Thread):
             "util_pct_mean": (round(float(np.mean(self.util)), 1)
                               if self.util else None),
             "power_samples": len(self.power),
+            "power_devices": len(self._handles) or None,
         }
 
 
