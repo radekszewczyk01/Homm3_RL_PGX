@@ -205,11 +205,10 @@ class PowerSampler(threading.Thread):
 
         # nvidia-smi i pynvml enumeruja WSZYSTKIE karty, takze ukryte przez
         # CUDA_VISIBLE_DEVICES. Bez filtrowania pomiar sumuje moc kart
-        # bezczynnych (oraz cudzego obciazenia), co zawyza J/decyzje
-        # o czynnik rowny liczbie kart w maszynie.
+        # bezczynnych (oraz cudzego obciazenia), co zawyza J/decyzje.
         vis = os.environ.get("CUDA_VISIBLE_DEVICES", "")
         self._visible = None
-        if vis and vis.strip() and vis.strip() != "(wszystkie)":
+        if vis and vis.strip():
             try:
                 self._visible = [int(x) for x in vis.split(",") if x.strip()]
             except ValueError:
@@ -220,9 +219,9 @@ class PowerSampler(threading.Thread):
             pynvml.nvmlInit()
             self._nvml = pynvml
             n = pynvml.nvmlDeviceGetCount()
-            idx = self._visible if self._visible is not None else range(n)
+            idx = self._visible if self._visible is not None else list(range(n))
             self._handles = [pynvml.nvmlDeviceGetHandleByIndex(i)
-                             for i in idx if i < n]
+                             for i in idx if 0 <= i < n]
         except Exception:
             self._nvml = None
             self._handles = []
@@ -550,7 +549,7 @@ def bench_steps(env, batch, n_steps, sharding, repeats, want_analysis,
 # ===========================================================================
 
 def build_mcts(env, mod, batch, n_sims, policy="muzero",
-               max_considered=16, max_depth=None,
+               max_considered=16, max_depth=None, pb_c_init=1.25,
                conv_width=64, head_width=256):
     """Buduje funkcje decyzyjna oparta na mctx.
 
@@ -639,6 +638,7 @@ def build_mcts(env, mod, batch, n_sims, policy="muzero",
                 params, key, root, recurrent_fn,
                 num_simulations=n_sims,
                 max_depth=max_depth,
+                pb_c_init=pb_c_init,
                 invalid_actions=~states.legal_action_mask,
                 dirichlet_fraction=0.25).action
     else:
@@ -649,10 +649,12 @@ def build_mcts(env, mod, batch, n_sims, policy="muzero",
 
 def bench_mcts(env, mod, batch, n_sims, sharding, repeats, want_analysis,
                sample_power=False, policy="muzero", max_considered=16,
-               max_depth=None, peak_bw_gbs=DEFAULT_PEAK_BW_GBS):
+               max_depth=None, pb_c_init=1.25,
+               peak_bw_gbs=DEFAULT_PEAK_BW_GBS):
     decide, params, n_params = build_mcts(
         env, mod, batch, n_sims, policy=policy,
-        max_considered=max_considered, max_depth=max_depth)
+        max_considered=max_considered, max_depth=max_depth,
+        pb_c_init=pb_c_init)
 
     key = jax.random.PRNGKey(0)
     states = jax.jit(jax.vmap(env.init))(shard_keys(key, batch, sharding))
@@ -692,6 +694,7 @@ def bench_mcts(env, mod, batch, n_sims, sharding, repeats, want_analysis,
         "policy": policy,
         "max_considered_actions": max_considered if policy == "gumbel" else None,
         "max_depth": max_depth,
+        "pb_c_init": pb_c_init if policy == "muzero" else None,
         "batch": batch,
         "num_simulations": n_sims,
         "net_params": n_params,
@@ -944,6 +947,7 @@ def run_suite(args):
                    "policies": policies, "action_modes": modes,
                    "max_considered_actions": args.max_considered,
                    "max_depth": args.max_depth,
+                   "pb_c_init": args.pb_c_init,
                    "peak_bw_gbs": args.peak_bw, "l2_mib": args.l2_mib},
         "env_stats": [], "steps": [], "mcts": [], "sims_sweep": [],
         "errors": [],
@@ -1030,6 +1034,8 @@ def run_suite(args):
                      else f"Gumbel / m = {args.max_considered}")
             depth = ("" if args.max_depth is None
                      else f", max_depth = {args.max_depth}")
+            if pol == "muzero" and args.pb_c_init != 1.25:
+                depth += f", pb_c_init = {args.pb_c_init}"
             print(f"\n[2/3] Decyzje MCTS -- {label}  "
                   f"(num_simulations = {args.sims}{depth})")
             print(f"{'wsad':>7} {'decyzje/s':>11} {'ms/dec':>9} "
@@ -1042,6 +1048,7 @@ def run_suite(args):
                                    policy=pol,
                                    max_considered=args.max_considered,
                                    max_depth=args.max_depth,
+                                   pb_c_init=args.pb_c_init,
                                    peak_bw_gbs=args.peak_bw)
                 except Exception as exc:
                     print(f"{b:>7}   PRZERWANO: {type(exc).__name__}: "
@@ -1082,6 +1089,7 @@ def run_suite(args):
                                        policy=pol,
                                        max_considered=args.max_considered,
                                        max_depth=args.max_depth,
+                                       pb_c_init=args.pb_c_init,
                                        peak_bw_gbs=args.peak_bw)
                     except Exception as exc:
                         print(f"{ns:>10}   PRZERWANO: {type(exc).__name__} "
@@ -1224,6 +1232,9 @@ def main():
                     help="muzero = PUCT, gumbel = Gumbel MuZero")
     ap.add_argument("--max-considered", type=int, default=16,
                     help="max_num_considered_actions dla polityki gumbel")
+    ap.add_argument("--pb-c-init", type=float, default=1.25,
+                    help="stala eksploracji reguly PUCT; wartosc domyslna "
+                         "mctx to 1.25")
     ap.add_argument("--max-depth", type=int, default=None,
                     help="max_depth drzewa; domyslnie mctx uzywa "
                          "num_simulations")

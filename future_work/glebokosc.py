@@ -50,7 +50,8 @@ from benchark import load_engine, make_sharding, shard_keys, place_batched
 # ===========================================================================
 
 def build_probe(env, mod, batch, n_sims, policy, max_considered=16,
-                max_depth=None, conv_width=64, head_width=256):
+                max_depth=None, pb_c_init=1.25,
+                conv_width=64, head_width=256):
     """Zwraca funkcje, ktora zamiast akcji oddaje geometrie drzewa.
 
     Z drzewa wyciagamy tylko dwie male tablice - tablice rodzicow oraz
@@ -110,6 +111,7 @@ def build_probe(env, mod, batch, n_sims, policy, max_considered=16,
             out = mctx.muzero_policy(
                 params, key, root, recurrent_fn,
                 num_simulations=n_sims, max_depth=max_depth,
+                pb_c_init=pb_c_init,
                 invalid_actions=~states.legal_action_mask,
                 dirichlet_fraction=0.25)
         tree = out.search_tree
@@ -169,9 +171,9 @@ def summarise(parents, root_visits, label, cfg):
 # ===========================================================================
 
 def run_one(env, mod, batch, n_sims, policy, max_considered, max_depth,
-            sharding, label):
+            sharding, label, pb_c_init=1.25):
     probe, params = build_probe(env, mod, batch, n_sims, policy,
-                                max_considered, max_depth)
+                                max_considered, max_depth, pb_c_init)
     key = jax.random.PRNGKey(0)
     states = jax.jit(jax.vmap(env.init))(shard_keys(key, batch, sharding))
     states = place_batched(states, batch, sharding)
@@ -190,18 +192,23 @@ def run_one(env, mod, batch, n_sims, policy, max_considered, max_depth,
     cfg = {"polityka": policy, "wsad": batch, "symulacje": n_sims,
            "m": max_considered if policy == "gumbel" else None,
            "max_depth": max_depth,
+           "pb_c_init": pb_c_init if policy == "muzero" else None,
            "ms_na_decyzje": round(1000.0 * t_run / batch, 4),
            "czas_kompilacji_s": round(t_first - t_run, 1)}
     return summarise(parents, rv, label, cfg)
 
 
 ZESTAW = {
-    # etykieta          polityka   m     max_depth
-    "puct-ref":        ("muzero",  None, None),
-    "puct-d20":        ("muzero",  None, 20),
-    "gumbel-m16":      ("gumbel",  16,   None),
-    "gumbel-m64":      ("gumbel",  64,   None),
-    "gumbel-m1322":    ("gumbel",  1322, None),
+    # etykieta         polityka   m     max_depth  pb_c_init
+    "puct-ref":       ("muzero",  None, None,      1.25),
+    "puct-c3":        ("muzero",  None, None,      3.0),
+    "puct-c5":        ("muzero",  None, None,      5.0),
+    "puct-c10":       ("muzero",  None, None,      10.0),
+    "puct-c20":       ("muzero",  None, None,      20.0),
+    "puct-d20":       ("muzero",  None, 20,        1.25),
+    "gumbel-m16":     ("gumbel",  16,   None,      1.25),
+    "gumbel-m64":     ("gumbel",  64,   None,      1.25),
+    "gumbel-m1322":   ("gumbel",  1322, None,      1.25),
 }
 
 
@@ -212,6 +219,9 @@ def main():
     ap.add_argument("--sims", type=int, default=100)
     ap.add_argument("--only", default=None,
                     help="lista etykiet po przecinku")
+    ap.add_argument("--sweep-pb-c", dest="sweep_pb_c", type=float,
+                    default=1.25,
+                    help="stala eksploracji uzywana w przemiataniu po N")
     ap.add_argument("--sims-sweep", type=int, nargs="*",
                     default=[50, 100, 150, 200],
                     help="dla PUCT: jak glebokosc rosnie z N "
@@ -231,9 +241,9 @@ def main():
     wyniki = []
     labels = (args.only.split(",") if args.only else list(ZESTAW))
 
-    hdr = (f"{'konfiguracja':<16} {'wezly':>7} {'gleb.':>7} {'gleb.':>7} "
-           f"{'gleb.':>7} {'akcje':>7} {'ms/dec':>9}")
-    sub = (f"{'':<16} {'rozw.':>7} {'max sr':>7} {'max p95':>7} "
+    hdr = (f"{'konfiguracja':<16} {'c_puct':>7} {'wezly':>7} {'gleb.':>7} "
+           f"{'gleb.':>7} {'gleb.':>7} {'akcje':>7} {'ms/dec':>9}")
+    sub = (f"{'':<16} {'':>7} {'rozw.':>7} {'max sr':>7} {'max p95':>7} "
            f"{'srednia':>7} {'korzen':>7} {'':>9}")
     print("\n" + hdr)
     print(sub)
@@ -243,15 +253,17 @@ def main():
         if lab not in ZESTAW:
             print(f"  [nieznana etykieta] {lab}")
             continue
-        pol, m, md = ZESTAW[lab]
+        pol, m, md, cpuct = ZESTAW[lab]
         try:
             r = run_one(env, mod, b, args.sims, pol, m or 16, md,
-                        sharding, lab)
+                        sharding, lab, pb_c_init=cpuct)
         except Exception as exc:
             print(f"{lab:<16}   BLAD: {type(exc).__name__}: {str(exc)[:50]}")
             continue
         wyniki.append(r)
-        print(f"{lab:<16} {r['wezlow_rozwinietych']:>7.0f} "
+        cp = r.get("pb_c_init")
+        print(f"{lab:<16} {(f'{cp:.2f}' if cp else '-'):>7} "
+              f"{r['wezlow_rozwinietych']:>7.0f} "
               f"{r['glebokosc_max_srednia']:>7.1f} "
               f"{r['glebokosc_max_p95']:>7.0f} "
               f"{r['glebokosc_srednia']:>7.2f} "
@@ -267,7 +279,8 @@ def main():
         for ns in args.sims_sweep:
             try:
                 r = run_one(env, mod, b, ns, "muzero", 16, None,
-                            sharding, f"puct-N{ns}")
+                            sharding, f"puct-N{ns}",
+                            pb_c_init=args.sweep_pb_c)
             except Exception as exc:
                 print(f"{ns:>6}   BLAD: {type(exc).__name__}")
                 continue
@@ -298,6 +311,20 @@ def main():
             print("Jesli obie liczby sa zblizone, koszt jest funkcja")
             print("glebokosci drzewa - co potwierdza wyjasnienie przyjete")
             print("w rozdziale o przeszukiwaniu.")
+    cvar = [w for w in wyniki if w["label"].startswith("puct-c")
+            or w["label"] == "puct-ref"]
+    if len(cvar) > 1:
+        print("\nWplyw stalej eksploracji na ksztalt drzewa:")
+        print(f"{'c_puct':>8} {'akcji w korzeniu':>18} {'glebokosc':>11} "
+              f"{'ms/dec':>9}")
+        for w in sorted(cvar, key=lambda x: x["pb_c_init"] or 0):
+            print(f"{w['pb_c_init']:>8.2f} "
+                  f"{w['akcje_w_korzeniu_srednio']:>18.1f} "
+                  f"{w['glebokosc_max_srednia']:>11.1f} "
+                  f"{w['ms_na_decyzje']:>9.3f}")
+        print("Jesli liczba akcji w korzeniu rosnie z c_puct, degeneracja")
+        print("jest skutkiem doboru parametru, a nie wlasnoscia reguly.")
+
     if g16 and gwd:
         print(f"\nGumbel m=16 vs m=1322: glebokosc "
               f"{g16['glebokosc_max_srednia']:.1f} vs "
