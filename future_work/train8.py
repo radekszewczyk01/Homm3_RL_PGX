@@ -15,6 +15,8 @@ POPRAWKI WZGLEDEM WERSJI PODSTAWOWEJ
         nastepnym.
   * BOOTSTRAP: odcinek trajektorii nie konczacy sie stanem terminalnym
         domykany jest oszacowaniem wartosci z sieci, nie zerem.
+  * KLIPOWANIE ZWROTU: zwrot G jest obcinany do [-1.0, 1.0], dopasowujac
+        go do wyjscia glowy wartosci przechodzacej przez tanh.
 
 UZYCIE
     python3 train8.py --tag pilot --seed 0 --minutes 25
@@ -326,10 +328,10 @@ def main():
     ap.add_argument("--sims", type=int, default=100)
     ap.add_argument("--odcinek", type=int, default=32,
                     help="liczba krokow samogry na iteracje")
-    ap.add_argument("--lr", type=float, default=2e-4)
+    ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--l2", type=float, default=1e-4)
     ap.add_argument("--minibatch", type=int, default=1024)
-    ap.add_argument("--krokow-uczenia", type=int, default=8,
+    ap.add_argument("--krokow-uczenia", type=int, default=32,
                     help="krokow gradientu na iteracje samogry")
     ap.add_argument("--bufor", type=int, default=100_000)
     ap.add_argument("--no-shaping", dest="ksztaltowanie",
@@ -358,6 +360,7 @@ def main():
         f"ksztaltowanie={args.ksztaltowanie}")
     log(f"B={args.batch} N={args.sims} odcinek={args.odcinek} "
         f"budzet={args.minutes:.0f} min")
+    log(f"lr={args.lr} krokow_uczenia={args.krokow_uczenia}")
     log(f"urzadzenia: {jax.devices()}")
 
     env = HoMM3EnvV3()
@@ -387,6 +390,7 @@ def main():
         obs, maska, wagi, nagrody, prev_p, next_p, gotowe, w_korzeniu = zapis
         _, v_koncowa = siec.apply(PARAMS_HOLDER[0], states.observation)
         G = zwroty(nagrody, prev_p, next_p, gotowe, v_koncowa)
+        G = jnp.clip(G, -1.0, 1.0)
         return states, key, obs, maska, wagi, G, gotowe, w_korzeniu
 
     @jax.jit
