@@ -144,7 +144,7 @@ MODELLED_PATTERNS = [
     (r"^strikes?\s+twice$",                 _set("double_attack")),
     (r"^attacks?\s+all\s+adjacent",         _set("all_around")),
     (r"^attacks?\s+(?:three|3)\s+adjacent", _set("three_headed")),
-    (r"^three[-\s]?headed\s+attack$",       _set("three_headed")),
+    (r"^(?:three|3)[-\s]?headed\s+attack$", _set("three_headed")),
     (r"^life\s+drain$",                     _set("life_drain")),
     (r"^returns?\s+after\s+(?:attack|strike)", _set("return_after_strike")),
 

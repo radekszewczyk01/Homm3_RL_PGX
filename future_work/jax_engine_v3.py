@@ -583,7 +583,8 @@ def extra_target_hexes(state: BattleState, u, atk_hex, d, tgt_hex):
 
     oddech    -> heks za celem, ten sam kierunek
     trojglowy -> dwaj sasiedzi ATAKUJACEGO przylegli do celu (kierunki d-1, d+1)
-    dookolny  -> wszyscy sasiedzi atakujacego
+    dookolny  -> wszyscy sasiedzi atakujacego; dla jednostek dwuheksowych
+                 takze sasiedzi heksu tylnego (Hydra)
     """
     m = jnp.zeros(NUM_HEXES, dtype=jnp.bool_)
 
@@ -599,6 +600,15 @@ def extra_target_hexes(state: BattleState, u, atk_hex, d, tgt_hex):
         h = NEIGHBOR_SAFE[atk_hex, k]
         m = m.at[h].max(NEIGHBOR_OK[atk_hex, k] & state.all_around[u])
 
+    # jednostka dwuheksowa razi takze sasiadow pola tylnego
+    two = state.is_two_hex[u]
+    back = rear_hex(atk_hex, state.side[u], two)
+    for k in range(N_DIRS):
+        h = NEIGHBOR_SAFE[back, k]
+        m = m.at[h].max(NEIGHBOR_OK[back, k] & state.all_around[u] & two)
+
+    m = m.at[atk_hex].set(False)
+    m = m.at[back].set(False)
     return m.at[tgt_hex].set(False)
 
 

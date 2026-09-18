@@ -7,7 +7,7 @@ print("w tierze 60-700:",
 
 print("\nkontrola literówek:")
 for n in ["Griffin", "Royal Griffin", "Centaur Captain", "Thunderbird",
-          "Behemoth", "Water Elemental", "Ice Elemental"]:
+          "Behemoth", "Water Elemental", "Ice Elemental", "Cerberus"]:
     r = df[df.name == n]
     print(f"  {n:<18}", "BRAK W CSV" if r.empty
           else f"2hex={int(r.is_two_hex.iloc[0])}")
