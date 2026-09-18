@@ -46,9 +46,13 @@ import mctx
 import flax.linen as nn
 from flax.serialization import to_bytes
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+KAT_FUTURE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, KAT_FUTURE)
+sys.path.insert(0, os.path.join(KAT_FUTURE, ".."))
+
+# Katalogiem roboczym MUSI byc future_work, bo tu lezy homm3_static_lut.npy
+os.chdir(KAT_FUTURE)
+
 import jax_engine_v3 as eng
 from jax_engine_v3 import HoMM3EnvV3, MAX_ACTIONS, N_PLANES, N_BOARD_ACTIONS
 
