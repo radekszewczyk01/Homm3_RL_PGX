@@ -48,7 +48,7 @@ from flax.serialization import to_bytes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import jax_engine_v3 as eng
 from jax_engine_v3 import HoMM3EnvV3, MAX_ACTIONS, N_PLANES, N_BOARD_ACTIONS
 
@@ -326,7 +326,7 @@ def main():
     ap.add_argument("--minutes", type=float, default=180.0)
     ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--sims", type=int, default=100)
-    ap.add_argument("--odcinek", type=int, default=32,
+    ap.add_argument("--odcinek", type=int, default=128,
                     help="liczba krokow samogry na iteracje")
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--l2", type=float, default=1e-4)
