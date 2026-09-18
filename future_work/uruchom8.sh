@@ -110,8 +110,8 @@ _pracownik)
                         CUDA_VISIBLE_DEVICES="${g}" "$DOCKER" \
                             python3 -u future_work/train8.py \
                             --tag "${baza}" --seed "${seed}" \
-                            --minutes "${MINUTY}" ${dodatkowe} \
-                            > "${log}" 2>&1
+                            --minutes "${MINUTY}" --odcinek 128 --krokow-uczenia 128 ${dodatkowe} \
+                            > "${log}" 2>&1 < /dev/null
                         rm -f "${KATALOG}/.zajete_${g}"
                     ) &
                     sleep 5
@@ -150,8 +150,11 @@ stan)
 
 stop)
     echo "Zatrzymywanie wszystkich przebiegow..."
-    pkill -f "train8.py" && echo "zatrzymano" || echo "nic nie bylo uruchomione"
+    pkill -f "uruchom8.sh _pracownik" 2>/dev/null || true
+    pkill -f "train8.py" 2>/dev/null || true
+    docker kill $(docker ps -q) 2>/dev/null || true
     rm -f "${KATALOG}"/.zajete_*
+    echo "zatrzymano"
     ;;
 
 *)
