@@ -17,13 +17,18 @@ POPRAWKI WZGLEDEM WERSJI PODSTAWOWEJ
         domykany jest oszacowaniem wartosci z sieci, nie zerem.
   * KLIPOWANIE ZWROTU: zwrot G jest obcinany do [-1.0, 1.0], dopasowujac
         go do wyjscia glowy wartosci przechodzacej przez tanh.
+  * KATALOG ROBOCZY: jawne os.chdir do future_work/ celem poprawnego
+        odczytu homm3_static_lut.npy (pula 101 stworow).
+  * ABLACJA KSZTALTOWANIA:
+        1. Rozroznienie katalogu wyjsciowego (-bez dla args.ksztaltowanie=False).
+        2. Przekazanie flagi ksztaltowanie do recurrent_fn wewnatrz MCTS.
 
 UZYCIE
     python3 train8.py --tag pilot --seed 0 --minutes 25
     python3 train8.py --tag gumbel-m16 --seed 0 --minutes 180
     python3 train8.py --tag puct-strojony --seed 1 --minutes 180 --no-shaping
 
-Kazdy przebieg tworzy katalog runs/<tag>_s<seed>/ zawierajacy:
+Kazdy przebieg tworzy katalog runs/<tag>[-bez]_s<seed>/ zawierajacy:
     STATUS          jedna linia: RUNNING / DONE / FAILED
     historia.json   punkty kontrolne (czas, decyzje, wynik ewaluacji)
     ckpt_*.msgpack  wagi sieci
@@ -98,7 +103,7 @@ class Siec(nn.Module):
 # PRZESZUKIWANIE
 # ===========================================================================
 
-def zbuduj_decyzje(env, siec, batch, n_sims, polityka, c_puct, m):
+def zbuduj_decyzje(env, siec, batch, n_sims, polityka, c_puct, m, ksztaltowanie=True):
     """Zwraca funkcje (params, states, key) -> (akcje, wagi, akcje_w_korzeniu).
 
     Trzecia wartosc sluzy do sledzenia degeneracji eksploracji w trakcie
@@ -115,6 +120,8 @@ def zbuduj_decyzje(env, siec, batch, n_sims, polityka, c_puct, m):
 
         # nagroda z perspektywy gracza, ktory wykonal ruch
         nagroda = st.rewards[jnp.arange(batch), prev_player]
+        if not ksztaltowanie:
+            nagroda = jnp.where(st.terminated, nagroda, 0.0)
 
         # znak odwracany wylacznie przy zmianie strony
         ta_sama = st.current_player == prev_player
@@ -347,7 +354,8 @@ def main():
     args = ap.parse_args()
 
     polityka, c_puct, m, opis = KONFIGURACJE[args.tag]
-    nazwa = f"{args.tag}_s{args.seed}"
+    przyrostek = "" if args.ksztaltowanie else "-bez"
+    nazwa = f"{args.tag}{przyrostek}_s{args.seed}"
     kat = os.path.join(args.katalog, nazwa)
     os.makedirs(kat, exist_ok=True)
 
@@ -382,7 +390,7 @@ def main():
     PARAMS_HOLDER[0] = params
 
     decyduj = zbuduj_decyzje(env, siec, args.batch, args.sims,
-                             polityka, c_puct, m)
+                             polityka, c_puct, m, args.ksztaltowanie)
     krok_samogry = zbuduj_samogre(env, siec, decyduj, args.batch,
                                   args.odcinek, args.ksztaltowanie)
     ewaluuj = jax.jit(zbuduj_ewaluacje(env, siec, args.par_ewaluacji))
