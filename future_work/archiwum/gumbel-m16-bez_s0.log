@@ -1,0 +1,47 @@
+[pula] 101 stworow  (2hex 24, strzelcy 30, latacze 18, oddech 2, dookolny 0)
+[23:34:08] === gumbel-m16_s0 ===  Gumbel, m=16
+[23:34:08] polityka=gumbel c_puct=1.25 m=16 ksztaltowanie=False
+[23:34:08] B=256 N=100 odcinek=128 budzet=180 min
+[23:34:08] lr=0.001 krokow_uczenia=128
+[23:34:08] urzadzenia: [CudaDevice(id=0)]
+[23:34:12] parametrow sieci: 2,785,739
+[23:34:18] kompilacja i pierwsza iteracja...
+[23:37:33] pierwsza iteracja gotowa w 195s (w tym kompilacja)
+[23:40:26] it    2    5.8 min  dec    65,536  wsk.zwyc 0.619  korzen  16.0  strata 4.4430   189.0 dec/s
+[23:45:32] it    4   11.2 min  dec   131,072  wsk.zwyc 0.625  korzen  16.0  strata 4.3403   194.6 dec/s
+[23:50:39] it    6   16.3 min  dec   196,608  wsk.zwyc 0.602  korzen  16.0  strata 4.2906   200.5 dec/s
+[23:55:44] it    8   21.4 min  dec   262,144  wsk.zwyc 0.604  korzen  16.0  strata 4.2943   204.0 dec/s
+[00:00:50] it   10   26.5 min  dec   327,680  wsk.zwyc 0.588  korzen  16.0  strata 4.2996   205.9 dec/s
+[00:05:53] it   12   31.6 min  dec   393,216  wsk.zwyc 0.613  korzen  16.0  strata 4.2811   207.6 dec/s
+[00:10:56] it   14   36.6 min  dec   458,752  wsk.zwyc 0.617  korzen  16.0  strata 4.2718   208.8 dec/s
+[00:16:00] it   16   41.7 min  dec   524,288  wsk.zwyc 0.627  korzen  16.0  strata 4.2901   209.6 dec/s
+[00:21:02] it   18   46.7 min  dec   589,824  wsk.zwyc 0.619  korzen  16.0  strata 4.2923   210.4 dec/s
+[00:26:03] it   20   51.7 min  dec   655,360  wsk.zwyc 0.627  korzen  16.0  strata 4.2880   211.1 dec/s
+[00:31:08] it   22   56.8 min  dec   720,896  wsk.zwyc 0.600  korzen  16.0  strata 4.2673   211.4 dec/s
+[00:36:17] it   24   62.0 min  dec   786,432  wsk.zwyc 0.633  korzen  16.0  strata 4.2631   211.5 dec/s
+[00:41:20] it   26   67.0 min  dec   851,968  wsk.zwyc 0.615  korzen  16.0  strata 4.2775   211.9 dec/s
+[00:46:25] it   28   72.1 min  dec   917,504  wsk.zwyc 0.631  korzen  16.0  strata 4.2614   212.1 dec/s
+[00:51:27] it   30   77.1 min  dec   983,040  wsk.zwyc 0.598  korzen  16.0  strata 4.2512   212.4 dec/s
+[00:56:33] it   32   82.2 min  dec 1,048,576  wsk.zwyc 0.600  korzen  16.0  strata 4.2599   212.5 dec/s
+[01:01:37] it   34   87.3 min  dec 1,114,112  wsk.zwyc 0.613  korzen  16.0  strata 4.2526   212.7 dec/s
+[01:06:41] it   36   92.4 min  dec 1,179,648  wsk.zwyc 0.623  korzen  16.0  strata 4.2247   212.8 dec/s
+[01:11:44] it   38   97.4 min  dec 1,245,184  wsk.zwyc 0.609  korzen  16.0  strata 4.2201   213.0 dec/s
+[01:16:47] it   40  102.5 min  dec 1,310,720  wsk.zwyc 0.619  korzen  16.0  strata 4.2072   213.2 dec/s
+[01:21:51] it   42  107.5 min  dec 1,376,256  wsk.zwyc 0.631  korzen  16.0  strata 4.2088   213.3 dec/s
+[01:26:55] it   44  112.6 min  dec 1,441,792  wsk.zwyc 0.604  korzen  16.0  strata 4.2044   213.4 dec/s
+[01:32:00] it   46  117.7 min  dec 1,507,328  wsk.zwyc 0.596  korzen  16.0  strata 4.2007   213.5 dec/s
+[01:37:03] it   48  122.7 min  dec 1,572,864  wsk.zwyc 0.629  korzen  16.0  strata 4.2241   213.6 dec/s
+[01:42:08] it   50  127.8 min  dec 1,638,400  wsk.zwyc 0.607  korzen  16.0  strata 4.2195   213.6 dec/s
+[01:47:14] it   52  132.9 min  dec 1,703,936  wsk.zwyc 0.629  korzen  16.0  strata 4.1977   213.6 dec/s
+[01:52:16] it   54  138.0 min  dec 1,769,472  wsk.zwyc 0.582  korzen  16.0  strata 4.1954   213.8 dec/s
+[01:57:20] it   56  143.0 min  dec 1,835,008  wsk.zwyc 0.594  korzen  16.0  strata 4.1757   213.8 dec/s
+[02:02:21] it   58  148.0 min  dec 1,900,544  wsk.zwyc 0.635  korzen  16.0  strata 4.1804   214.0 dec/s
+[02:07:27] it   60  153.1 min  dec 1,966,080  wsk.zwyc 0.617  korzen  16.0  strata 4.1945   214.0 dec/s
+[02:12:33] it   62  158.2 min  dec 2,031,616  wsk.zwyc 0.631  korzen  16.0  strata 4.2011   214.0 dec/s
+[02:17:38] it   64  163.3 min  dec 2,097,152  wsk.zwyc 0.627  korzen  16.0  strata 4.1890   214.0 dec/s
+[02:22:41] it   66  168.4 min  dec 2,162,688  wsk.zwyc 0.619  korzen  16.0  strata 4.2050   214.1 dec/s
+[02:27:47] it   68  173.5 min  dec 2,228,224  wsk.zwyc 0.611  korzen  16.0  strata 4.1906   214.1 dec/s
+[02:32:51] it   70  178.5 min  dec 2,293,760  wsk.zwyc 0.637  korzen  16.0  strata 4.1898   214.1 dec/s
+[02:35:22] it   71  181.1 min  dec 2,326,528  wsk.zwyc 0.623  korzen  16.0  strata 4.2090   214.2 dec/s
+[02:35:22] zakonczono: 71 iteracji, 2,326,528 decyzji, 17,223 partii
+[02:35:22] koncowy wskaznik zwyciestw: 0.623
