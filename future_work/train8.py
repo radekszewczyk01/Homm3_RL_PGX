@@ -19,6 +19,14 @@ POPRAWKI WZGLEDEM WERSJI PODSTAWOWEJ
         go do wyjscia glowy wartosci przechodzacej przez tanh.
   * KATALOG ROBOCZY: jawne os.chdir do future_work/ celem poprawnego
         odczytu homm3_static_lut.npy (pula 101 stworow).
+  * PARAMETRY W JIT (poprawka krytyczna, v2): wczesniej samogra i ewaluacja
+        czytaly wagi z globalnego PARAMS_HOLDER wewnatrz funkcji jit. JAX
+        wpisuje taka wartosc do skompilowanego programu jako STALA przy
+        pierwszym sledzeniu - samogra grala zawsze siecia poczatkowa, a
+        ewaluacja zawsze siecia z pierwszego punktu kontrolnego. Teraz wagi
+        sa jawnym argumentem funkcji jit.
+  * EWALUACJA: dodatkowo przed treningiem (iteracja 0) oraz po kazdej z
+        pierwszych --gesto-iteracji iteracji (gesta krzywa startowa).
   * ABLACJA KSZTALTOWANIA:
         1. Rozroznienie katalogu wyjsciowego (-bez dla args.ksztaltowanie=False).
         2. Przekazanie flagi ksztaltowanie do recurrent_fn wewnatrz MCTS.
@@ -171,14 +179,14 @@ def zbuduj_samogre(env, siec, decyduj, batch, dlugosc, ksztaltowanie):
     """Zwraca funkcje zbierajaca odcinek trajektorii o zadanej dlugosci."""
 
     def krok(carry, _):
-        states, key = carry
+        params, states, key = carry
         key, k_mcts, k_step, k_reset = jax.random.split(key, 4)
 
         obs = states.observation
         maska = states.legal_action_mask
         prev_player = states.current_player
 
-        akcje, wagi, w_korzeniu = decyduj(PARAMS_HOLDER[0], states, k_mcts)
+        akcje, wagi, w_korzeniu = decyduj(params, states, k_mcts)
 
         states = jax.vmap(env.step)(
             states, akcje, jax.random.split(k_step, batch))
@@ -199,7 +207,7 @@ def zbuduj_samogre(env, siec, decyduj, batch, dlugosc, ksztaltowanie):
 
         zapis = (obs, maska, wagi, nagrody, prev_player, next_player,
                  gotowe, w_korzeniu)
-        return (states, key), zapis
+        return (params, states, key), zapis
 
     return krok
 
@@ -270,10 +278,10 @@ def zbuduj_ewaluacje(env, siec, n_par, max_krokow=400):
         [jnp.zeros(n_par, jnp.int32), jnp.ones(n_par, jnp.int32)])
 
     def krok(carry, _):
-        states, key, wynik, zywe = carry
+        params, states, key, wynik, zywe = carry
         key, k_a, k_b, k_step = jax.random.split(key, 4)
 
-        logity, _ = siec.apply(PARAMS_HOLDER[0], states.observation)
+        logity, _ = siec.apply(params, states.observation)
         logity = jnp.where(states.legal_action_mask, logity, -1e9)
         akcja_agenta = jnp.argmax(logity, axis=-1)
         akcja_bazowa = polityka_zachlanna(states, k_b, eng)
@@ -289,15 +297,15 @@ def zbuduj_ewaluacje(env, siec, n_par, max_krokow=400):
         r = states.rewards[jnp.arange(B), strona_agenta]
         wynik = jnp.where(koniec, r, wynik)
         zywe = zywe & (~states.terminated)
-        return (states, key, wynik, zywe), None
+        return (params, states, key, wynik, zywe), None
 
     def ewaluuj(params, key):
         k_init, k_gra = jax.random.split(key)
         klucze = jax.random.split(k_init, n_par)
         klucze = jnp.concatenate([klucze, klucze], axis=0)
         states = jax.vmap(env.init)(klucze)
-        carry = (states, k_gra, jnp.zeros(B), jnp.ones(B, jnp.bool_))
-        (states, _, wynik, zywe), _ = jax.lax.scan(
+        carry = (params, states, k_gra, jnp.zeros(B), jnp.ones(B, jnp.bool_))
+        (_, states, _, wynik, zywe), _ = jax.lax.scan(
             krok, carry, None, length=max_krokow)
         return wynik, zywe
 
@@ -327,7 +335,6 @@ def podsumuj_ewaluacje(wynik, zywe, n_par):
 # GLOWNA PETLA
 # ===========================================================================
 
-PARAMS_HOLDER = [None]   # obejscie: params przekazywane do funkcji w scan
 
 
 def main():
@@ -350,6 +357,8 @@ def main():
     ap.add_argument("--ckpt-co", type=float, default=300.0,
                     help="odstep miedzy punktami kontrolnymi [s]")
     ap.add_argument("--par-ewaluacji", type=int, default=256)
+    ap.add_argument("--gesto-iteracji", type=int, default=8,
+                    help="ewaluacja po kazdej z pierwszych N iteracji")
     ap.add_argument("--katalog", default="runs")
     args = ap.parse_args()
 
@@ -387,7 +396,6 @@ def main():
 
     opt = optax.adam(args.lr)
     stan_opt = opt.init(params)
-    PARAMS_HOLDER[0] = params
 
     decyduj = zbuduj_decyzje(env, siec, args.batch, args.sims,
                              polityka, c_puct, m, args.ksztaltowanie)
@@ -396,11 +404,11 @@ def main():
     ewaluuj = jax.jit(zbuduj_ewaluacje(env, siec, args.par_ewaluacji))
 
     @jax.jit
-    def zbierz(states, key):
-        (states, key), zapis = jax.lax.scan(
-            krok_samogry, (states, key), None, length=args.odcinek)
+    def zbierz(params, states, key):
+        (_, states, key), zapis = jax.lax.scan(
+            krok_samogry, (params, states, key), None, length=args.odcinek)
         obs, maska, wagi, nagrody, prev_p, next_p, gotowe, w_korzeniu = zapis
-        _, v_koncowa = siec.apply(PARAMS_HOLDER[0], states.observation)
+        _, v_koncowa = siec.apply(params, states.observation)
         G = zwroty(nagrody, prev_p, next_p, gotowe, v_koncowa)
         G = jnp.clip(G, -1.0, 1.0)
         return states, key, obs, maska, wagi, G, gotowe, w_korzeniu
@@ -440,13 +448,32 @@ def main():
     iteracja = 0
     budzet = args.minutes * 60.0
 
+    def zapisz_historie():
+        with open(os.path.join(kat, "historia.json"), "w") as f:
+            json.dump({"konfiguracja": vars(args), "wersja": 2,
+                       "polityka": polityka, "c_puct": c_puct,
+                       "m": m, "parametrow": n_par,
+                       "punkty": historia}, f, indent=2)
+
+    # --- ewaluacja sieci nietrenowanej (iteracja 0) ---
+    key, k_ew = jax.random.split(key)
+    wynik, zywe = ewaluuj(params, k_ew)
+    ocena = podsumuj_ewaluacje(wynik, zywe, args.par_ewaluacji)
+    historia.append({"iteracja": 0, "czas_s": 0.0, "decyzje": 0,
+                     "partie": 0, "kroki_gradientu": 0, **ocena})
+    zapisz_historie()
+    log(f"it    0  siec nietrenowana  "
+        f"wsk.zwyc {ocena['wskaznik_zwyciestw']:.3f}")
+    t_start = time.perf_counter()   # kompilacja ewaluacji nie wlicza sie do budzetu
+    t_ckpt = t_start
+
     log("kompilacja i pierwsza iteracja...")
 
     try:
         while time.perf_counter() - t_start < budzet:
             key, k_zb = jax.random.split(key)
             states, _, obs, maska, wagi, G, gotowe, w_korzeniu = zbierz(
-                states, k_zb)
+                params, states, k_zb)
             jax.block_until_ready(G)
 
             decyzje += args.odcinek * args.batch
@@ -469,7 +496,6 @@ def main():
                     jnp.asarray(obs_all[idx]), jnp.asarray(maska_all[idx]),
                     jnp.asarray(cp_all[idx]), jnp.asarray(cv_all[idx]))
                 straty.append((float(l), float(lp), float(lv)))
-            PARAMS_HOLDER[0] = params
 
             iteracja += 1
             uplyw = time.perf_counter() - t_start
@@ -480,7 +506,7 @@ def main():
 
             # --- punkt kontrolny ---
             if time.perf_counter() - t_ckpt >= args.ckpt_co or \
-                    uplyw >= budzet:
+                    uplyw >= budzet or iteracja <= args.gesto_iteracji:
                 t_ckpt = time.perf_counter()
                 key, k_ew = jax.random.split(key)
                 wynik, zywe = ewaluuj(params, k_ew)
@@ -492,6 +518,7 @@ def main():
                     "czas_s": round(uplyw, 1),
                     "decyzje": decyzje,
                     "partie": partie,
+                    "kroki_gradientu": iteracja * args.krokow_uczenia,
                     "strata": round(l_sr, 4),
                     "strata_polityki": round(
                         float(np.mean([s[1] for s in straty])), 4),
@@ -506,11 +533,7 @@ def main():
                 sciezka = os.path.join(kat, f"ckpt_{iteracja:05d}.msgpack")
                 with open(sciezka, "wb") as f:
                     f.write(to_bytes(params))
-                with open(os.path.join(kat, "historia.json"), "w") as f:
-                    json.dump({"konfiguracja": vars(args),
-                               "polityka": polityka, "c_puct": c_puct,
-                               "m": m, "parametrow": n_par,
-                               "punkty": historia}, f, indent=2)
+                zapisz_historie()
 
                 log(f"it {iteracja:>4}  {uplyw/60:>5.1f} min  "
                     f"dec {decyzje:>9,}  "
