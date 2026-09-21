@@ -1,241 +1,317 @@
 #!/usr/bin/env python3
 """
-Ewaluacja koncowych sieci z rozdzialu 8: pojedynki i turniej.
+Analiza przebiegow treningowych do rozdzialu 8.
 
-Dwa braki ewaluacji prowadzonej w trakcie treningu uzupelnia ten skrypt:
-  * mierzyla wylacznie siec bez przeszukiwania (argmax logitow), co faworyzuje
-    metody uczace ostrej polityki; tutaj mozna wlaczyc pelnego agenta z MCTS
-    (--gracz mcts), czyli ewaluacje poziomu drugiego;
-  * jedynym przeciwnikiem byla polityka zachlanna, ktorej wynik nasyca sie
-    okolo 0,7; turniej kazdy z kazdym porownuje sieci bezposrednio.
+Czyta runs/*/historia.json (format wersja 2) i wytwarza:
+    pomiary_rozdzial8.csv      wszystkie punkty kontrolne w jednej tabeli
+    tabela_koncowa.tex         tabela wynikow koncowych (srednia, odchylenie,
+                               przedzial Wilsona) gotowa do wklejenia
+    krzywe_decyzje.pdf         wskaznik zwyciestw wzgledem liczby decyzji
+    krzywe_start.pdf           powiekszenie pierwszych 150 tys. decyzji
+    krzywe_korzen.pdf          liczba akcji w wezle glownym (degeneracja)
+    dlugosc_partii.pdf         srednia liczba decyzji na partie
 
-Kazdy pojedynek rozgrywany jest w parach lustrzanych: ta sama bitwa poczatkowa
-dwa razy, ze stronami zamienionymi.
-
-UZYCIE
-    # jeden pojedynek: siec z przebiegu A przeciwko polityce zachlannej
-    python3 ewal8.py --a runs/gumbel-m16_s0 --b zachlanna
-
-    # pelny agent (siec + MCTS) przeciwko sieci bez przeszukiwania
-    python3 ewal8.py --a runs/gumbel-m16_s0 --gracz-a mcts \
-                     --b runs/puct-strojony_s0 --gracz-b mcts
-
-    # turniej kazdy z kazdym po jednym ziarnie z kazdej konfiguracji
-    python3 ewal8.py --turniej runs/gumbel-m64_s0 runs/gumbel-m16_s0 \
-                     runs/gumbel-m16-bez_s0 runs/puct-strojony_s0 \
-                     runs/puct-domyslny_s0 --par 128
-
-Wyniki zapisywane sa do turniej.json oraz turniej.csv.
+Uzycie:
+    python3 analiza8.py                 # katalog runs/, wyniki do analiza/
+    python3 analiza8.py --katalog runs --wyjscie analiza
 """
 
 import argparse
+import csv
 import glob
-import itertools
 import json
+import math
 import os
-import re
 
 import numpy as np
-import jax
-import jax.numpy as jnp
-from flax.serialization import from_bytes
 
-import train8 as T          # ustawia katalog roboczy i importuje silnik
-import jax_engine_v3 as eng
-from jax_engine_v3 import HoMM3EnvV3, MAX_ACTIONS
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    MA_WYKRESY = True
+except ImportError:                                    # pragma: no cover
+    MA_WYKRESY = False
+
+# kolejnosc i opisy konfiguracji na wykresach i w tabeli
+PORZADEK = [
+    ("gumbel-m64",     "Gumbel, $m=64$"),
+    ("gumbel-m16",     "Gumbel, $m=16$"),
+    ("gumbel-m16-bez", "Gumbel, $m=16$, bez ksztaltowania"),
+    ("puct-strojony",  "PUCT, $c=20$"),
+    ("puct-domyslny",  "PUCT, $c=1{,}25$"),
+]
+KOLORY = {
+    "gumbel-m64":     "#1b6ca8",
+    "gumbel-m16":     "#4fa3d1",
+    "gumbel-m16-bez": "#7fb069",
+    "puct-strojony":  "#d98b2b",
+    "puct-domyslny":  "#b3423f",
+}
+
+POLA = ["konfiguracja", "ziarno", "iteracja", "czas_s", "decyzje", "partie",
+        "kroki_gradientu", "strata", "strata_polityki", "strata_wartosci",
+        "akcje_w_korzeniu", "dec_na_s", "wskaznik_zwyciestw",
+        "partii_rozegranych", "partii_nieskonczonych", "par_rozstrzygnietych"]
 
 
 # ---------------------------------------------------------------------------
-# wczytywanie przebiegow
+# wczytywanie
 # ---------------------------------------------------------------------------
 
-def ostatni_ckpt(kat):
-    pliki = sorted(glob.glob(os.path.join(kat, "ckpt_*.msgpack")))
-    if not pliki:
-        raise SystemExit(f"brak punktow kontrolnych w {kat}")
-    return pliki[-1]
-
-
-def konfiguracja_przebiegu(kat):
-    """Zwraca (tag, polityka, c_puct, m) na podstawie historia.json."""
-    sciezka = os.path.join(kat, "historia.json")
-    if os.path.exists(sciezka):
+def wczytaj(katalog):
+    """Zwraca slownik {konfiguracja: {ziarno: lista punktow}}."""
+    dane = {}
+    for sciezka in sorted(glob.glob(os.path.join(katalog, "*", "historia.json"))):
         with open(sciezka) as f:
             d = json.load(f)
-        tag = d.get("konfiguracja", {}).get("tag")
-        if tag in T.KONFIGURACJE:
-            polityka, c, m, _ = T.KONFIGURACJE[tag]
-            if not d.get("konfiguracja", {}).get("ksztaltowanie", True):
-                tag += "-bez"
-            return tag, polityka, c, m
-    nazwa = os.path.basename(kat.rstrip("/"))
-    tag = re.sub(r"_s\d+$", "", nazwa).replace("-bez", "")
-    polityka, c, m, _ = T.KONFIGURACJE.get(tag, ("gumbel", 1.25, 16, ""))
-    return nazwa, polityka, c, m
+        cfg = d.get("konfiguracja", {})
+        tag = cfg.get("tag", "?")
+        if tag == "pilot":
+            continue
+        if d.get("wersja") != 2:
+            print(f"  POMIJAM {sciezka}: brak znacznika wersja=2 "
+                  f"(przebieg sprzed poprawki)")
+            continue
+        if not cfg.get("ksztaltowanie", True):
+            tag += "-bez"
+        ziarno = int(cfg.get("seed", 0))
+        punkty = sorted(d.get("punkty", []), key=lambda p: p["decyzje"])
+        dane.setdefault(tag, {})[ziarno] = punkty
+        print(f"  {tag:<16} s{ziarno}  punktow: {len(punkty):>3}  "
+              f"decyzji: {punkty[-1]['decyzje']:,}")
+    return dane
 
 
-def wczytaj_params(kat, wzor):
-    with open(ostatni_ckpt(kat), "rb") as f:
-        return from_bytes(wzor, f.read())
-
-
-# ---------------------------------------------------------------------------
-# gracze
-# ---------------------------------------------------------------------------
-
-def zbuduj_gracza(rodzaj, env, siec, batch, n_sims, polityka, c_puct, m):
-    """Zwraca funkcje (params, states, key) -> akcje."""
-    if rodzaj == "mcts":
-        decyduj = T.zbuduj_decyzje(env, siec, batch, n_sims,
-                                   polityka, c_puct, m, ksztaltowanie=True)
-        return lambda params, states, key: decyduj(params, states, key)[0]
-
-    if rodzaj == "siec":
-        def graj(params, states, key):
-            logity, _ = siec.apply(params, states.observation)
-            return jnp.argmax(
-                jnp.where(states.legal_action_mask, logity, -1e9), axis=-1)
-        return graj
-
-    if rodzaj == "zachlanna":
-        return lambda params, states, key: T.polityka_zachlanna(
-            states, key, eng)
-
-    if rodzaj == "losowa":
-        return lambda params, states, key: jax.random.categorical(
-            key, jnp.where(states.legal_action_mask, 0.0, -1e9), axis=-1)
-
-    raise SystemExit(f"nieznany rodzaj gracza: {rodzaj}")
-
-
-def zbuduj_pojedynek(env, graj_a, graj_b, n_par, max_krokow):
-    """Pary lustrzane: A gra polowa partii jako gracz 0, polowa jako 1."""
-    B = 2 * n_par
-    strona_a = jnp.concatenate(
-        [jnp.zeros(n_par, jnp.int32), jnp.ones(n_par, jnp.int32)])
-
-    def krok(carry, _):
-        pa, pb, states, key, wynik, zywe = carry
-        key, k_a, k_b, k_step = jax.random.split(key, 4)
-
-        akcja_a = graj_a(pa, states, k_a)
-        akcja_b = graj_b(pb, states, k_b)
-        tura_a = states.current_player == strona_a
-        akcje = jnp.where(tura_a, akcja_a, akcja_b)
-
-        states = jax.vmap(env.step)(
-            states, akcje, jax.random.split(k_step, B))
-
-        koniec = states.terminated & zywe
-        r = states.rewards[jnp.arange(B), strona_a]
-        wynik = jnp.where(koniec, r, wynik)
-        zywe = zywe & (~states.terminated)
-        return (pa, pb, states, key, wynik, zywe), None
-
-    def pojedynek(params_a, params_b, key):
-        k_init, k_gra = jax.random.split(key)
-        klucze = jax.random.split(k_init, n_par)
-        klucze = jnp.concatenate([klucze, klucze], axis=0)
-        states = jax.vmap(env.init)(klucze)
-        carry = (params_a, params_b, states, k_gra,
-                 jnp.zeros(B), jnp.ones(B, jnp.bool_))
-        (_, _, _, _, wynik, zywe), _ = jax.lax.scan(
-            krok, carry, None, length=max_krokow)
-        return wynik, zywe
-
-    return pojedynek
+def zapisz_csv(dane, sciezka):
+    with open(sciezka, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=POLA)
+        w.writeheader()
+        for tag, ziarna in dane.items():
+            for ziarno, punkty in sorted(ziarna.items()):
+                for p in punkty:
+                    wiersz = {k: p.get(k, "") for k in POLA}
+                    wiersz["konfiguracja"] = tag
+                    wiersz["ziarno"] = ziarno
+                    w.writerow(wiersz)
 
 
 # ---------------------------------------------------------------------------
+# statystyka
+# ---------------------------------------------------------------------------
 
-def rozegraj(env, siec, wzor, opis_a, opis_b, args, seed=0):
-    """Jeden pojedynek. opis_* to katalog przebiegu albo nazwa polityki."""
-    B = 2 * args.par
-    stale = {"zachlanna", "losowa"}
+def wilson(wygrane, proby, z=1.96):
+    """Przedzial ufnosci Wilsona dla proporcji."""
+    if proby <= 0:
+        return (float("nan"), float("nan"))
+    p = wygrane / proby
+    m = z * math.sqrt(p * (1 - p) / proby + z * z / (4 * proby * proby))
+    return ((p + z * z / (2 * proby) - m) / (1 + z * z / proby),
+            (p + z * z / (2 * proby) + m) / (1 + z * z / proby))
 
-    def przygotuj(opis, rodzaj):
-        if opis in stale:
-            return wzor, zbuduj_gracza(opis, env, siec, B, args.sims,
-                                       "gumbel", 1.25, 16), opis
-        tag, polityka, c, m = konfiguracja_przebiegu(opis)
-        params = wczytaj_params(opis, wzor)
-        gracz = zbuduj_gracza(rodzaj, env, siec, B, args.sims,
-                              polityka, c, m)
-        etykieta = f"{os.path.basename(opis.rstrip('/'))}[{rodzaj}]"
-        return params, gracz, etykieta
 
-    pa, graj_a, etyk_a = przygotuj(opis_a, args.gracz_a)
-    pb, graj_b, etyk_b = przygotuj(opis_b, args.gracz_b)
+def podsumuj(dane):
+    """Dla kazdej konfiguracji: wyniki koncowe i baza (iteracja 0)."""
+    wynik = {}
+    for tag, ziarna in dane.items():
+        koncowe, bazy, decyzje, dlugosci, korzenie, przepustowosc = \
+            [], [], [], [], [], []
+        wygrane_sum = proby_sum = 0
+        for ziarno, punkty in sorted(ziarna.items()):
+            ostatni = punkty[-1]
+            koncowe.append(ostatni["wskaznik_zwyciestw"])
+            decyzje.append(ostatni["decyzje"])
+            if ostatni.get("partie"):
+                dlugosci.append(ostatni["decyzje"] / ostatni["partie"])
+            if ostatni.get("akcje_w_korzeniu") is not None:
+                korzenie.append(ostatni["akcje_w_korzeniu"])
+            if ostatni.get("dec_na_s"):
+                przepustowosc.append(ostatni["dec_na_s"])
+            rozegrane = ostatni.get("partii_rozegranych", 0)
+            proby_sum += rozegrane
+            wygrane_sum += ostatni["wskaznik_zwyciestw"] * rozegrane
+            zerowy = [p for p in punkty if p["iteracja"] == 0]
+            if zerowy:
+                bazy.append(zerowy[0]["wskaznik_zwyciestw"])
+        lo, hi = wilson(wygrane_sum, proby_sum)
+        wynik[tag] = {
+            "ziarna": len(koncowe),
+            "srednia": float(np.mean(koncowe)),
+            "odchylenie": float(np.std(koncowe, ddof=1)) if len(koncowe) > 1
+                          else 0.0,
+            "mediana": float(np.median(koncowe)),
+            "wyniki": koncowe,
+            "wilson": (lo, hi),
+            "prob": int(proby_sum),
+            "baza": float(np.mean(bazy)) if bazy else float("nan"),
+            "decyzje": float(np.mean(decyzje)),
+            "dlugosc_partii": float(np.mean(dlugosci)) if dlugosci else float("nan"),
+            "korzen": float(np.mean(korzenie)) if korzenie else float("nan"),
+            "dec_na_s": float(np.mean(przepustowosc)) if przepustowosc else float("nan"),
+        }
+    return wynik
 
-    pojedynek = jax.jit(zbuduj_pojedynek(env, graj_a, graj_b,
-                                         args.par, args.max_krokow))
-    wynik, zywe = pojedynek(pa, pb, jax.random.PRNGKey(seed))
-    ocena = T.podsumuj_ewaluacje(wynik, zywe, args.par)
-    ocena["a"] = etyk_a
-    ocena["b"] = etyk_b
-    print(f"{etyk_a:<34} vs {etyk_b:<34} "
-          f"wsk {ocena['wskaznik_zwyciestw']:.3f}  "
-          f"partii {ocena['partii_rozegranych']}  "
-          f"nieskonczonych {ocena['partii_nieskonczonych']}")
-    return ocena
 
+def lb(x, cyfry=3):
+    """Liczba z przecinkiem dziesietnym, do LaTeX-a."""
+    if x != x:
+        return "---"
+    return f"{x:.{cyfry}f}".replace(".", "{,}")
+
+
+def tabela_tex(pods, sciezka):
+    wiersze = []
+    for tag, opis in PORZADEK:
+        if tag not in pods:
+            continue
+        s = pods[tag]
+        lo, hi = s["wilson"]
+        wyniki = ", ".join(lb(w) for w in s["wyniki"])
+        wiersze.append(
+            f"{opis} & {lb(s['srednia'])} & {lb(s['odchylenie'])} & "
+            f"[{lb(lo)}; {lb(hi)}] & {wyniki} & "
+            f"{lb(s['decyzje'] / 1e6, 2)} & {lb(s['dlugosc_partii'], 0)} & "
+            f"{lb(s['korzen'], 1)} \\\\")
+    baza = np.nanmean([s["baza"] for s in pods.values()])
+    tresc = r"""% wygenerowane przez analiza8.py
+\begin{table}[htbp]
+  \centering
+  \caption{Jakosc treningu po trzech godzinach na jednej karcie. Wskaznik
+    zwyciestw zmierzono w parach lustrzanych przeciwko polityce zachlannej
+    (256 par, 512 partii na pomiar). Przedzial Wilsona policzono na wszystkich
+    partiach z trzech ziaren lacznie. Siec nietrenowana osiaga """ + lb(baza) + r""".}
+  \label{tab:jakosc-treningu}
+  \begin{tabular}{lccccccc}
+    \toprule
+    Konfiguracja & Srednia & Odch. & Przedzial Wilsona & Wyniki ziaren &
+    Decyzje [mln] & Dec./partie & Korzen \\
+    \midrule
+""" + "\n".join("    " + w for w in wiersze) + r"""
+    \bottomrule
+  \end{tabular}
+\end{table}
+"""
+    with open(sciezka, "w") as f:
+        f.write(tresc)
+
+
+# ---------------------------------------------------------------------------
+# wykresy
+# ---------------------------------------------------------------------------
+
+def siatka(ziarna, pole_x, pole_y, n=200, x_max=None):
+    """Interpoluje przebiegi na wspolna siatke; zwraca (x, srednia, min, max)."""
+    krzywe = [(np.array([p[pole_x] for p in punkty], float),
+               np.array([p.get(pole_y, np.nan) for p in punkty], float))
+              for punkty in ziarna.values() if len(punkty) > 1]
+    if not krzywe:
+        return None
+    gorny = min(x[-1] for x, _ in krzywe)
+    if x_max is not None:
+        gorny = min(gorny, x_max)
+    x = np.linspace(0, gorny, n)
+    y = np.vstack([np.interp(x, xi, yi) for xi, yi in krzywe])
+    return x, y.mean(axis=0), y.min(axis=0), y.max(axis=0)
+
+
+def wykres(dane, pods, pole_y, tytul_y, sciezka, x_max=None, baza=None,
+           tytul=None):
+    fig, ax = plt.subplots(figsize=(6.4, 4.0))
+    for tag, opis in PORZADEK:
+        if tag not in dane:
+            continue
+        s = siatka(dane[tag], "decyzje", pole_y, x_max=x_max)
+        if s is None:
+            continue
+        x, sr, lo, hi = s
+        x = x / 1e6
+        ax.fill_between(x, lo, hi, color=KOLORY[tag], alpha=0.15, linewidth=0)
+        ax.plot(x, sr, color=KOLORY[tag], label=opis, linewidth=1.8)
+    if baza is not None and baza == baza:
+        ax.axhline(baza, color="0.35", linestyle="--", linewidth=1.0)
+        ax.text(0.99, baza, " siec nietrenowana", transform=ax.get_yaxis_transform(),
+                ha="right", va="bottom", fontsize=8, color="0.35")
+    ax.set_xlabel("decyzje [mln]")
+    ax.set_ylabel(tytul_y)
+    if tytul:
+        ax.set_title(tytul, fontsize=10)
+    ax.grid(alpha=0.25, linewidth=0.6)
+    ax.legend(fontsize=8, loc="best", frameon=False)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(sciezka)
+    plt.close(fig)
+
+
+def wykres_dlugosci(dane, sciezka):
+    """Srednia liczba decyzji na partie w funkcji liczby decyzji."""
+    fig, ax = plt.subplots(figsize=(6.4, 4.0))
+    for tag, opis in PORZADEK:
+        if tag not in dane:
+            continue
+        for punkty in dane[tag].values():
+            x = np.array([p["decyzje"] for p in punkty], float)
+            partie = np.array([max(p.get("partie", 0), 1) for p in punkty], float)
+            ax.plot(x / 1e6, x / partie, color=KOLORY[tag], alpha=0.8,
+                    linewidth=1.3)
+        ax.plot([], [], color=KOLORY[tag], label=opis, linewidth=1.8)
+    ax.set_xlabel("decyzje [mln]")
+    ax.set_ylabel("decyzji na partie (narastajaco)")
+    ax.set_yscale("log")
+    ax.grid(alpha=0.25, linewidth=0.6)
+    ax.legend(fontsize=8, loc="best", frameon=False)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(sciezka)
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--a", help="katalog przebiegu albo zachlanna/losowa")
-    ap.add_argument("--b", default="zachlanna")
-    ap.add_argument("--gracz-a", default="siec",
-                    choices=["siec", "mcts", "zachlanna", "losowa"])
-    ap.add_argument("--gracz-b", default="siec",
-                    choices=["siec", "mcts", "zachlanna", "losowa"])
-    ap.add_argument("--turniej", nargs="*", default=None,
-                    help="katalogi przebiegow do turnieju kazdy z kazdym")
-    ap.add_argument("--par", type=int, default=256)
-    ap.add_argument("--sims", type=int, default=100)
-    ap.add_argument("--max-krokow", type=int, default=600)
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--katalog", default="runs")
     ap.add_argument("--wyjscie", default="analiza")
     args = ap.parse_args()
 
     os.makedirs(args.wyjscie, exist_ok=True)
-    env = HoMM3EnvV3()
-    siec = T.Siec()
-    wzor = siec.init(jax.random.PRNGKey(0),
-                     jnp.zeros((1, eng.BOARD_ROWS, eng.BOARD_COLS, eng.C)))
-    print(f"urzadzenia: {jax.devices()}  par: {args.par}  "
-          f"symulacji: {args.sims}")
+    print(f"czytam {args.katalog}/*/historia.json")
+    dane = wczytaj(args.katalog)
+    if not dane:
+        print("brak danych w formacie wersja=2")
+        return
 
-    wyniki = []
-    if args.turniej:
-        for opis in args.turniej:
-            wyniki.append(rozegraj(env, siec, wzor, opis, "zachlanna",
-                                   args, args.seed))
-        for a, b in itertools.combinations(args.turniej, 2):
-            wyniki.append(rozegraj(env, siec, wzor, a, b, args, args.seed))
+    csv_sc = os.path.join(args.wyjscie, "pomiary_rozdzial8.csv")
+    zapisz_csv(dane, csv_sc)
+    pods = podsumuj(dane)
+    tabela_tex(pods, os.path.join(args.wyjscie, "tabela_koncowa.tex"))
+
+    print("\n=== WYNIKI KONCOWE ===")
+    print(f"{'konfiguracja':<16} {'srednia':>8} {'odch.':>7} "
+          f"{'Wilson':>18} {'baza':>7} {'dec/partie':>11}")
+    for tag, _ in PORZADEK:
+        if tag not in pods:
+            continue
+        s = pods[tag]
+        lo, hi = s["wilson"]
+        print(f"{tag:<16} {s['srednia']:>8.3f} {s['odchylenie']:>7.3f} "
+              f"  [{lo:.3f}; {hi:.3f}] {s['baza']:>7.3f} "
+              f"{s['dlugosc_partii']:>11.0f}")
+
+    baza = float(np.nanmean([s["baza"] for s in pods.values()]))
+    if MA_WYKRESY:
+        wykres(dane, pods, "wskaznik_zwyciestw", "wskaznik zwyciestw",
+               os.path.join(args.wyjscie, "krzywe_decyzje.pdf"), baza=baza)
+        wykres(dane, pods, "wskaznik_zwyciestw", "wskaznik zwyciestw",
+               os.path.join(args.wyjscie, "krzywe_start.pdf"),
+               x_max=150_000, baza=baza, tytul="poczatek treningu")
+        wykres(dane, pods, "akcje_w_korzeniu", "akcji w wezle glownym",
+               os.path.join(args.wyjscie, "krzywe_korzen.pdf"))
+        wykres_dlugosci(dane, os.path.join(args.wyjscie, "dlugosc_partii.pdf"))
+        print(f"\nzapisano wykresy i tabele w {args.wyjscie}/")
     else:
-        if not args.a:
-            raise SystemExit("podaj --a albo --turniej")
-        wyniki.append(rozegraj(env, siec, wzor, args.a, args.b, args,
-                               args.seed))
-
-    sciezka = os.path.join(args.wyjscie, "turniej.json")
-    stare = []
-    if os.path.exists(sciezka):
-        with open(sciezka) as f:
-            stare = json.load(f)
-    stare.extend(wyniki)
-    with open(sciezka, "w") as f:
-        json.dump(stare, f, indent=2)
-
-    with open(os.path.join(args.wyjscie, "turniej.csv"), "w") as f:
-        f.write("a,b,wskaznik_zwyciestw,partii_rozegranych,"
-                "partii_nieskonczonych,par_rozstrzygnietych\n")
-        for w in stare:
-            f.write(f"{w['a']},{w['b']},{w['wskaznik_zwyciestw']},"
-                    f"{w['partii_rozegranych']},{w['partii_nieskonczonych']},"
-                    f"{w['par_rozstrzygnietych']}\n")
-    print(f"\nzapisano {sciezka} oraz turniej.csv "
-          f"({len(stare)} pojedynkow lacznie)")
+        print("\nbrak matplotlib - zapisano tylko CSV i tabele LaTeX")
+        print("instalacja: pip install --break-system-packages matplotlib")
 
 
 if __name__ == "__main__":
