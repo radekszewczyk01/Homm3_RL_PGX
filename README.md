@@ -1,67 +1,67 @@
 # Homm3_RL_PGX
 
-Wektoryzowane środowisko taktycznego modułu bitewnego Heroes of Might and Magic III,
-zaimplementowane jako czysta funkcja tensorowa w JAX i kompilowane przez XLA.
-Środowisko, przeszukiwanie drzewa i sieć neuronowa wykonują się w całości na
-akceleratorze, w jednym skompilowanym programie.
+A vectorized environment for the tactical battle module of Heroes of Might and Magic III,
+implemented as a pure tensor function in JAX and compiled with XLA.
+The environment, the tree search and the neural network all run entirely on the
+accelerator, in a single compiled program.
 
-Kod powstał na potrzeby pracy magisterskiej *„Wektoryzacja środowisk turowych gier
-taktycznych na akceleratorach sprzętowych dla algorytmów uczenia ze wzmocnieniem”*
-(Politechnika Warszawska).
+The code was written for a master's thesis, *"Vectorization of Turn-Based Tactical Game Environments on Hardware Accelerators for Reinforcement Learning Algorithms"* (*„Wektoryzacja środowisk turowych gier taktycznych na akceleratorach sprzętowych dla algorytmów uczenia ze wzmocnieniem"*), at Warsaw University of Technology.
 
-## Co tu jest
+## What's here
 
-| Katalog | Zawartość |
+| Directory | Contents |
 |---|---|
-| `src/` | kod: silnik symulacji, pętla treningowa, ewaluacja, nagrywanie, pomiary |
-| `data/` | tablice statyczne jednostek i dane wejściowe silnika |
-| `wyniki/` | surowe wyniki pomiarów przepustowości i kosztu przeszukiwania |
-| `demo/` | nagrania rozegranych partii i przykładowa powtórka |
-| `scripts/` | skrypt uruchomieniowy |
+| `src/` | code: simulation engine, training loop, evaluation, recording, benchmarks |
+| `data/` | static unit tables and engine input data |
+| `wyniki/` | raw results of the throughput and search-cost measurements |
+| `demo/` | recordings of played games and a sample replay |
+| `scripts/` | launch script |
 
-### Najważniejsze pliki
+### Key files
 
-- `src/jax_engine_v3.py` — symulator: reguły gry jako czysta funkcja tensorowa
-- `src/train8.py` — pętla AlphaZero (PUCT oraz Gumbel MuZero, przez `mctx`)
-- `src/ewal8.py` — ewaluacja i turnieje między modelami
-- `src/nagraj8.py` — zapis przebiegu partii do pliku powtórki
-- `src/podglad8.py` — odtwarzanie powtórki
+- `src/jax_engine_v3.py`: the simulator, with the game rules as a pure tensor function
+- `src/train8.py`: the AlphaZero loop (PUCT and Gumbel MuZero, via `mctx`)
+- `src/ewal8.py`: evaluation and tournaments between models
+- `src/nagraj8.py`: records a game's progress to a replay file
+- `src/podglad8.py`: plays back a replay
 
-## Szybki start
+## Quick start
 
 ```bash
-pip install -r requirements.txt     # albo: docker build -t homm3rl .
+pip install -r requirements.txt     # or: docker build -t homm3rl .
 
-# obejrzenie przykładowej partii
+# watch a sample game
 python src/podglad8.py --powtorka demo/przyklad_powtorki.json
 
-# trening
+# training
 python src/train8.py --help
 ```
 
-## Reprezentacja
+## Representation
 
-**Obserwacja** — siatka `11 × 15 × 12`: plansza heksagonalna, dwanaście kanałów na pole.
+**Observation**: an `11 × 15 × 12` grid. The board is hexagonal, with twelve channels per cell.
 
-**Przestrzeń akcji** — `a = 8h + p`, gdzie `h` to indeks heksa, a `p` to płaszczyzna
-operacji: `0` ruch, `1–6` atak w zwarciu w sześciu kierunkach heksagonalnych,
-`7` atak dystansowy. Plus dwie akcje globalne (obrona, czekanie), razem **1322**
-akcji nominalnych, z czego dopuszczalnych jest średnio **69**.
+**Action space**: `a = 8h + p`, where `h` is the hex index and `p` is the operation plane:
+`0` move, `1–6` melee attack in one of the six hex directions, `7` ranged attack.
+Two global actions (defend, wait) are added, for **1322** nominal actions in total,
+of which an average of **69** are legal.
 
-**Sieć** — trzy warstwy splotowe 3×3 po 64 kanały, następnie głowa polityki
-(splot 1×1 na płaszczyzny akcji) i głowa wartości. Około 2,8 mln parametrów.
-Dopuszczalność akcji wymusza maska wyliczana przez symulator, nie uczenie.
+**Network**: three 3×3 convolutional layers with 64 channels each, followed by a policy head
+(a 1×1 convolution onto the action planes) and a value head. It has about 2.8 million parameters.
+Action legality is enforced by a mask computed by the simulator, not learned.
 
-## Wybrane wyniki
+## Selected results
 
-- **371 tys. kroków/s** na jednym akceleratorze, przy wsadzie 2048
-- około **600×** więcej niż silnik referencyjny vcmi-gym (612 kroków/s na 8 procesach)
-- koszt decyzji rośnie **ponadliniowo**, jak `N^2.32` względem budżetu symulacji
-- ten sam symulator wewnątrz drzewa przeszukiwań jest **76× wolniejszy** —
-  wąskie gardło przenosi się ze środowiska do algorytmu przeszukiwania
-- reguła PUCT z domyślną stałą **degeneruje się w trakcie treningu**: pokrycie
-  korzenia spada z 56 do niespełna 7 akcji
+- **371k steps/s** on a single accelerator, at batch size 2048
+- about **600×** more than the reference engine vcmi-gym (612 steps/s on 8 processes)
+- decision cost grows **superlinearly**, as `N^2.32` in the simulation budget
+- the same simulator inside the search tree is **76× slower**, so the bottleneck
+  moves from the environment to the search algorithm
+- PUCT with the default constant **degenerates during training**: root coverage
+  drops from 56 to fewer than 7 actions
 
-## Licencja i cytowanie
+## License and citation
 
-MIT — [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
+
+I left the file and directory names (`wyniki`, `przyklad_powtorki.json`, `--powtorka`, and so on) as they are, since they have to match the code. If you want English names too, I'd need to rename them in the repo as well.
