@@ -2,3 +2,19 @@ __pycache__/
 .pytest_cache/
 replays_*/
 *.pyc
+# artefakty pośrednie nagrywania
+k_*/
+klatki_*/
+*.mp4
+!demo/*.mp4
+
+# powtórki partii (odtwarzalne z ewal8.py / nagraj8.py)
+powtorka_*.json
+!demo/przyklad_powtorki.json
+
+# punkty kontrolne
+archiwum/
+runs/
+
+__pycache__/
+.vscode/
