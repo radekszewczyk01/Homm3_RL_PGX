@@ -128,36 +128,21 @@ def rysunek_artefakt(seria_plukana, seria_bez, wyjscie):
     plt.close(fig)
 
 
-def wczytaj_przepustowosc(sciezka):
-    """
-    Wyciaga pary (wsad, kroki/s) z pliku wynikowego benchmarku.
-    Format bywa rozny - jesli sie nie uda, wypisuje klucze i zwraca None,
-    zebys mogl dopisac odpowiednie pole.
-    """
-    if not sciezka:
+def wczytaj_przepustowosc(sciezki):
+    """Przyjmuje liste plikow; przy powtorzonym wsadzie wygrywa plik podany pozniej."""
+    if not sciezki:
         return None
-    if not os.path.exists(sciezka):
-        print(f"  [uwaga] nie ma pliku {sciezka}")
-        return None
-    with open(sciezka) as f:
-        dane = json.load(f)
-    kroki = dane.get("steps") or dane.get("env_stats") or []
-    pary = []
-    for wpis in kroki:
-        if not isinstance(wpis, dict):
+    pary = {}
+    for sciezka in sciezki:
+        if not os.path.exists(sciezka):
+            print(f"  [uwaga] nie ma pliku {sciezka}")
             continue
-        wsad = wpis.get("batch") or wpis.get("wsad") or wpis.get("B")
-        tput = (wpis.get("steps_per_s") or wpis.get("kroki_s")
-                or wpis.get("throughput") or wpis.get("sps"))
-        if wsad and tput:
-            pary.append((int(wsad), float(tput)))
-    if not pary:
-        print("  [uwaga] nie rozpoznano formatu przepustowosci.")
-        print("  klucze najwyzszego poziomu:", list(dane))
-        if isinstance(kroki, list) and kroki and isinstance(kroki[0], dict):
-            print("  klucze pojedynczego pomiaru:", list(kroki[0]))
-        return None
-    return sorted(pary)
+        with open(sciezka) as f:
+            dane = json.load(f)
+        for wpis in dane.get("steps") or []:
+            if isinstance(wpis, dict) and wpis.get("batch") and wpis.get("steps_per_s"):
+                pary[int(wpis["batch"])] = float(wpis["steps_per_s"])
+    return sorted(pary.items()) if pary else None
 
 
 def rysunek_zestawienie(seria, przepustowosc, wyjscie):
@@ -202,8 +187,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--katalog", default="wyniki/liczniki",
                    help="katalog z podkatalogami liczniki_s, liczniki, liczniki_nc")
-    p.add_argument("--przepustowosc", default=None,
-                   help="plik JSON z krzywa przepustowosci (opcjonalnie)")
+    p.add_argument("--przepustowosc", nargs="*", default=None)
     p.add_argument("--wyjscie", default="rysunki")
     args = p.parse_args()
 
