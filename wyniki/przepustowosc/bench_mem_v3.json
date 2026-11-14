@@ -1,0 +1,209 @@
+{
+  "machine": {
+    "host": "cfea1738f05b",
+    "timestamp": "2026-08-25T13:30:03+00:00",
+    "platform": "gpu",
+    "device_kind": "NVIDIA RTX 5000 Ada Generation",
+    "n_devices": 1,
+    "cuda_visible": "0",
+    "cpu": "AMD EPYC 7F72 24-Core Processor",
+    "cpu_cores": 48,
+    "gpus": [
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.173.02",
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.173.02",
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.173.02"
+    ],
+    "jax_version": "0.6.2",
+    "python": "3.10.12",
+    "preallocate": "false"
+  },
+  "tag": "mem",
+  "engine": "v3",
+  "foreign_processes": [
+    "3831443, 310"
+  ],
+  "config": {
+    "n_steps": 100,
+    "num_simulations": 100,
+    "repeats": 2,
+    "batches": [
+      512
+    ],
+    "policies": [
+      "muzero"
+    ],
+    "max_considered_actions": 16,
+    "peak_bw_gbs": 576.0
+  },
+  "env_stats": null,
+  "steps": [
+    {
+      "batch": 512,
+      "n_steps": 100,
+      "lower_s": 4.254,
+      "compile_s": 14.162,
+      "first_run_s": 0.2158,
+      "wall_s_best": 0.1965,
+      "wall_s_median": 0.1993,
+      "wall_s_std": 0.0028,
+      "steps_per_s": 260523.2,
+      "mem_bytes": 6235648,
+      "flops": 251236224.0,
+      "bytes_accessed": 501713184.0,
+      "arithmetic_intensity": 0.501,
+      "mem_argument_bytes": 5365256,
+      "mem_output_bytes": 5365576,
+      "mem_temp_bytes": 21988624,
+      "bytes_per_state": 10479.0,
+      "achieved_bw_gbs": 2.55,
+      "bw_utilisation_pct": 0.443,
+      "achieved_gflops": 1.28
+    }
+  ],
+  "mcts": [
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 100,
+      "net_params": 2785739,
+      "lower_s": 4.367,
+      "compile_s": 14.536,
+      "first_run_s": 15.9929,
+      "wall_s_best": 14.9232,
+      "wall_s_median": 15.0989,
+      "decisions_per_s": 34.31,
+      "env_steps_per_s": 3430.9,
+      "ms_per_decision": 29.1468,
+      "mem_bytes": 17446400,
+      "flops": 2090328064.0,
+      "bytes_accessed": 13464825856.0,
+      "arithmetic_intensity": 0.155,
+      "mem_argument_bytes": 16508212,
+      "mem_output_bytes": 2048,
+      "mem_temp_bytes": 2321409288,
+      "achieved_bw_gbs": 0.9,
+      "bw_utilisation_pct": 0.157,
+      "achieved_gflops": 0.14
+    }
+  ],
+  "sims_sweep": [
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 25,
+      "net_params": 2785739,
+      "lower_s": 4.382,
+      "compile_s": 14.511,
+      "first_run_s": 0.4926,
+      "wall_s_best": 0.4667,
+      "wall_s_median": 0.4673,
+      "decisions_per_s": 1097.14,
+      "env_steps_per_s": 27428.4,
+      "ms_per_decision": 0.9115,
+      "mem_bytes": 17447936
+    },
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 50,
+      "net_params": 2785739,
+      "lower_s": 4.45,
+      "compile_s": 14.359,
+      "first_run_s": 2.756,
+      "wall_s_best": 2.6453,
+      "wall_s_median": 2.6511,
+      "decisions_per_s": 193.55,
+      "env_steps_per_s": 9677.5,
+      "ms_per_decision": 5.1666,
+      "mem_bytes": 17447936
+    },
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 100,
+      "net_params": 2785739,
+      "lower_s": 4.33,
+      "compile_s": 14.279,
+      "first_run_s": 15.9343,
+      "wall_s_best": 14.9241,
+      "wall_s_median": 15.0997,
+      "decisions_per_s": 34.31,
+      "env_steps_per_s": 3430.7,
+      "ms_per_decision": 29.1486,
+      "mem_bytes": 17447936
+    },
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 150,
+      "net_params": 2785739,
+      "lower_s": 4.342,
+      "compile_s": 14.479,
+      "first_run_s": 44.9035,
+      "wall_s_best": 42.075,
+      "wall_s_median": 43.4582,
+      "decisions_per_s": 12.17,
+      "env_steps_per_s": 1825.3,
+      "ms_per_decision": 82.1776,
+      "mem_bytes": 17447936
+    },
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 200,
+      "net_params": 2785739,
+      "lower_s": 5.048,
+      "compile_s": 16.958,
+      "first_run_s": 89.9403,
+      "wall_s_best": 85.9346,
+      "wall_s_median": 87.0429,
+      "decisions_per_s": 5.96,
+      "env_steps_per_s": 1191.6,
+      "ms_per_decision": 167.8409,
+      "mem_bytes": 17446400
+    },
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 300,
+      "net_params": 2785739,
+      "lower_s": 5.163,
+      "compile_s": 16.571,
+      "first_run_s": 230.173,
+      "wall_s_best": 220.8688,
+      "wall_s_median": 225.6393,
+      "decisions_per_s": 2.32,
+      "env_steps_per_s": 695.4,
+      "ms_per_decision": 431.3844,
+      "mem_bytes": 17445120
+    },
+    {
+      "policy": "muzero",
+      "max_considered_actions": null,
+      "batch": 512,
+      "num_simulations": 400,
+      "net_params": 2785739,
+      "lower_s": 5.725,
+      "compile_s": 16.964,
+      "first_run_s": 450.266,
+      "wall_s_best": 428.2399,
+      "wall_s_median": 437.2912,
+      "decisions_per_s": 1.2,
+      "env_steps_per_s": 478.2,
+      "ms_per_decision": 836.406,
+      "mem_bytes": 17446400
+    }
+  ],
+  "errors": [],
+  "bytes_per_state": 10479.0,
+  "foreign_processes_after": [
+    "3831443, 310"
+  ]
+}

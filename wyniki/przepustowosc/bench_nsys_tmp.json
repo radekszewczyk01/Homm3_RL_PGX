@@ -1,0 +1,55 @@
+{
+  "machine": {
+    "host": "ae5252560db0",
+    "timestamp": "2026-11-14T15:21:14+00:00",
+    "platform": "gpu",
+    "device_kind": "NVIDIA RTX 5000 Ada Generation",
+    "n_devices": 3,
+    "cuda_visible": "(wszystkie)",
+    "cpu": "AMD EPYC 7F72 24-Core Processor",
+    "cpu_cores": 48,
+    "gpus": [
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04",
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04",
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04"
+    ],
+    "jax_version": "0.6.2",
+    "python": "3.10.12",
+    "preallocate": "(domyslne = true)"
+  },
+  "tag": "nsys",
+  "engine": "v3",
+  "foreign_processes": [
+    "3827688, 192",
+    "3979048, 310",
+    "1066000, 24502",
+    "3827688, 7397",
+    "1066000, 324",
+    "3802410, 16389",
+    "3827688, 160"
+  ],
+  "config": {
+    "n_steps": 200,
+    "num_simulations": 100,
+    "repeats": 1,
+    "batches": [
+      2049
+    ],
+    "policies": [
+      "muzero"
+    ],
+    "action_modes": [
+      "random"
+    ],
+    "max_considered_actions": 16,
+    "max_depth": null,
+    "pb_c_init": 1.25,
+    "peak_bw_gbs": 576.0,
+    "l2_mib": 72.0
+  },
+  "env_stats": [],
+  "steps": [],
+  "mcts": [],
+  "sims_sweep": [],
+  "errors": []
+}
