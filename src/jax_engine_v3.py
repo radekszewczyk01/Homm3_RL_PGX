@@ -33,6 +33,10 @@ import jax.numpy as jnp
 import numpy as np
 import pgx
 from flax import struct
+import os
+# rozmiar sztucznego wypelnienia stanu [B]; sterowane zmienna srodowiskowa,
+# zeby nie trzeba bylo edytowac kodu przy kazdym przebiegu
+WYPELNIENIE_BAJTOW = int(os.environ.get("HOMM3_WYPELNIENIE", "0"))
 
 # ===========================================================================
 # 1. GEOMETRIA PLANSZY
@@ -340,6 +344,9 @@ class BattleState(pgx.State):
     waited_this_round: jnp.ndarray = _z(jnp.bool_)
     is_defending: jnp.ndarray = _z(jnp.bool_)
     retaliations_left: jnp.ndarray = _z(jnp.int32)  # NOWE (bylo bool)
+    # --- sztuczne wypelnienie do eksperymentu z rozmiarem stanu ---
+    wypelnienie: jnp.ndarray = dataclasses.field(
+        default_factory=lambda: jnp.zeros(WYPELNIENIE_BAJTOW, dtype=jnp.uint8))
 
     @property
     def env_id(self) -> str:
@@ -1015,6 +1022,22 @@ def check_invariants(state: BattleState) -> List[str]:
     if not bool(state.terminated) and not np.asarray(state.legal_action_mask).any():
         errs.append("brak legalnych akcji w stanie nieterminalnym")
     return errs
+
+
+# ===========================================================================
+# 13b. SZTUCZNE WYPELNIENIE STANU (eksperyment z rozmiarem stanu)
+# ===========================================================================
+
+if WYPELNIENIE_BAJTOW > 0:
+    _step_bez_wypelnienia = HoMM3EnvV3._step
+
+    def _step_z_wypelnieniem(self, state, action, key):
+        s = _step_bez_wypelnienia(self, state, action, key)
+        # domieszka zalezy od stanu, zeby kompilator nie uznal pola za martwe
+        domieszka = jnp.uint8(jnp.int32(s.active_unit_idx) & 7) + jnp.uint8(1)
+        return s.replace(wypelnienie=s.wypelnienie + domieszka)
+
+    HoMM3EnvV3._step = _step_z_wypelnieniem
 
 
 # ===========================================================================
