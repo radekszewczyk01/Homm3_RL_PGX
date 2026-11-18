@@ -1,0 +1,12 @@
+# Wersje celowo nie sa przypiete na rowne: na serwerze stoi juz dzialajacy
+# zestaw CUDA i JAX-a, i lepiej go nie ruszac. Te dolne granice sa po to,
+# zeby kod nie wystartowal na czyms, na czym nie bylby sprawdzony.
+jax>=0.4.30
+jaxlib>=0.4.30
+flax>=0.8
+pgx>=2.0
+numpy>=1.24
+matplotlib>=3.7
+
+# tylko do pomiarow drzewa przeszukiwania (uruchom/03_drzewo.sh)
+mctx>=0.0.5

@@ -1,0 +1,25 @@
+# Obraz do profilowania: baza plus Nsight Compute.
+#
+# Buduj NA SWOIM obrazie, nie na goly CUDA - inaczej wersje JAX-a i CUDA sie
+# rozjada i porownanie z wczesniejszymi pomiarami przestanie byc wazne.
+#
+#   docker build -f Dockerfile.profil -t homm3_profil:latest \
+#       --build-arg BAZA=homm3_az_v2:latest .
+#
+# Wersja nsight-compute MUSI pasowac do sterownika. Przy sterowniku 580
+# pakiet dla CUDA 12.1 zbiera liczniki poprawnie, ale nsys z tej samej paczki
+# nie widzi ruchu CUDA - dlatego tu jest tylko nsight-compute. Jesli ncu
+# odmowi wspolpracy, sprawdz wersje: ncu --version.
+ARG BAZA=homm3_az_v2:latest
+FROM ${BAZA}
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        cuda-nsight-compute-12-1 libcap2-bin \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PATH=/opt/nvidia/nsight-compute:/usr/local/cuda/bin:${PATH}
+
+# mctx jest potrzebny tylko do pomiarow drzewa; jesli jest juz w bazie,
+# ta linia nic nie zmieni
+RUN pip install --no-cache-dir mctx || true
