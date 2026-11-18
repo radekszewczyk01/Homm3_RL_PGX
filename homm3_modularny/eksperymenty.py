@@ -73,6 +73,13 @@ def _tabela(wiersze, kolumny):
 OCZEKIWANE_ODNIESIENIE = dict(D=10479, A=1322, kanalow=12,
                               bajtow_na_krawedz=34.0, B_max=884)
 
+# Przepustowosc z pracy: wsad 2048, karta RTX 5000 Ada. Mierzona starym
+# skryptem benchark.py, wiec ta sama liczba z nowej warstwy pomiarowej jest
+# jednoczesnie sprawdzeniem, czy nowa petla pomiarowa mierzy to samo.
+KROKOW_NA_SEKUNDE_Z_PRACY = 371_011
+WSAD_Z_PRACY = 2048
+TOLERANCJA_PRZEPUSTOWOSCI = 0.10
+
 
 def cmd_zgodnosc(args):
     """Sprawdza, ze konfiguracja odniesienia odtwarza silnik z pracy.
@@ -109,6 +116,48 @@ def cmd_zgodnosc(args):
     print(f"\n  B_opt z reguly projektowej: {rez['B_opt']:.0f} "
           f"(zmierzone kolano wypadlo przy 2048)")
 
+    # --- odtworzenie przepustowosci z pracy -------------------------------
+    pomiar_czasu = None
+    if args.czas and jax.default_backend() != "gpu":
+        print(f"\n  pomijam odtworzenie przepustowosci: zaplecze to "
+              f"{jax.default_backend()}, nie karta.")
+        print("  Liczba z pracy pochodzi z karty, wiec porownanie z "
+              "procesorem nic nie znaczy.")
+    elif args.czas:
+        print(f"\n  odtworzenie przepustowosci z pracy "
+              f"(wsad {WSAD_Z_PRACY})...")
+        srod = otoczenie()
+        print(f"    karta: {srod['gpu_nazwa']}, zegar {srod['gpu_zegar_sm']} "
+              f"z {srod['gpu_zegar_sm_max']}")
+        pomiar_czasu = przepustowosc(env, WSAD_Z_PRACY, kroki=args.kroki,
+                                     powtorzenia=args.powtorzenia)
+        zmierzone = pomiar_czasu["krokow_na_sekunde"]
+        stosunek = zmierzone / KROKOW_NA_SEKUNDE_Z_PRACY
+        print(f"    zmierzone  {zmierzone:>12,.0f} krokow/s  "
+              f"(+-{pomiar_czasu['odchylenie_pct']:.1f}%)")
+        print(f"    z pracy    {KROKOW_NA_SEKUNDE_Z_PRACY:>12,} krokow/s")
+        print(f"    stosunek   {stosunek:>12.3f}")
+        zgoda_czasu = abs(stosunek - 1.0) <= TOLERANCJA_PRZEPUSTOWOSCI
+        pomiar_czasu["stosunek_do_pracy"] = stosunek
+        pomiar_czasu["zgoda"] = bool(zgoda_czasu)
+        if zgoda_czasu:
+            print("    OK   nowa petla pomiarowa mierzy to samo co benchark.py")
+        else:
+            print("    UWAGA roznica ponad "
+                  f"{100 * TOLERANCJA_PRZEPUSTOWOSCI:.0f}%. Zanim uznasz to "
+                  "za wynik, sprawdz po kolei:")
+            print("      1. zegar karty: python3 narzedzia/sprawdz_zegar.py")
+            print("      2. czy data/homm3_static_lut.npy jest na miejscu "
+                  "(inna pula to inne bitwy)")
+            print("      3. ten sam wsad starym skryptem benchark.py na tej "
+                  "samej karcie")
+            print("      4. wersje sterownika i CUDA - od sierpnia mogly sie "
+                  "zmienic")
+            print("    Rozbieznosc tutaj NIE uniewaznia liczb z kompilatora,")
+            print("    ale uniewaznia kazda liczbe czasowa z tego "
+                  "repozytorium.")
+        ok &= zgoda_czasu
+
     # kontrola niezmiennikow na losowych partiach
     print(f"\n  losowe partie z kontrola niezmiennikow ({args.gier} gier)...")
     wynik_gier = _rozegraj(env, args.gier, args.krokow)
@@ -123,6 +172,7 @@ def cmd_zgodnosc(args):
                          "oczekiwane": float(o), "zgoda": abs(m - o) <= t}
                         for n, m, o, t in sprawdzenia],
         "gry": wynik_gier,
+        "przepustowosc": pomiar_czasu,
         "ok": bool(ok),
     })
     return 0 if ok else 1
@@ -529,8 +579,8 @@ def cmd_klasa2(args):
     D_bazowe = None
     for k_kan in args.kanaly:
         kfg = dataclasses.replace(
-            preset("III_II"), kanaly_wypelniajace=k_kan,
-            nazwa=f"kanalow_{k_kan}")
+            preset(args.preset), kanaly_wypelniajace=k_kan,
+            nazwa=f"{args.preset}_k{k_kan}")
         env = zbuduj(kfg)
         D = rozmiar_stanu(env)
         rez = model_rezydencji(D)
@@ -739,7 +789,8 @@ def main(argv=None):
         sp.add_argument("--powtorzenia", type=int, default=5)
         return sp
 
-    s = pod.add_parser("zgodnosc", help="czy odniesienie odtwarza wersje 3")
+    s = wspolne(pod.add_parser("zgodnosc",
+                               help="czy odniesienie odtwarza wersje 3"))
     s.add_argument("--gier", type=int, default=50)
     s.add_argument("--krokow", type=int, default=200)
     s.set_defaults(fn=cmd_zgodnosc)
@@ -768,6 +819,9 @@ def main(argv=None):
     s.set_defaults(fn=cmd_klasa1)
 
     s = wspolne(pod.add_parser("klasa2", help="rezydencja L2 i objetosc stanu"))
+    s.add_argument("--preset", default="III_II",
+                   help="podstawa skanu; 'odniesienie' do odtworzenia "
+                        "krzywej z pracy, 'III_II' do testu klasy II")
     s.add_argument("--kanaly", nargs="+", type=int, default=[0, 8, 16, 24],
                    help="ile kanalow syntetycznych dolozyc (0 = tylko bufy)")
     s.add_argument("--wsady", nargs="*", type=int, default=None,
@@ -798,6 +852,7 @@ def main(argv=None):
     s.add_argument("--presety", nargs="+",
                    default=["odniesienie", "III_II_IV", "I_4"])
     s.add_argument("--kanaly", nargs="+", type=int, default=[0, 8, 16])
+    s.add_argument("--preset", default="III_II")
     s.add_argument("--wsady", nargs="*", type=int, default=None)
     s.add_argument("--symulacje", type=int, default=32)
     s.add_argument("--polityka", default="gumbel",

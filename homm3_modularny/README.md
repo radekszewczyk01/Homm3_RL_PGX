@@ -58,6 +58,7 @@ eksperymenty.py     wszystkie eksperymenty jako podkomendy
 test_mechanik.py    testy semantyki mechanik (59 sprawdzeń)
 
 narzedzia/
+  sprawdz_zegar.py         czy karta nie ma zablokowanego zegara (pod obciążeniem)
   krotki_przebieg.py       minimalny przebieg do podstawienia pod ncu
   najwazniejsze_jadro.py   wskazuje jądro decydujące o czasie kroku
   wykres_rezydencji.py     wykresy i tabela do sekcji o L2
@@ -187,14 +188,19 @@ z kompilatora były wtedy nietknięte i od razu wskazywały, że kod jest bez wi
 **Liczby z pomiaru czasu**: kroki na sekundę, trafienia w pamięć podręczną,
 ruch do DRAM. Niezbędne, żeby pokazać *skutek*, ale wymagają sprawnej karty.
 
-> **Dopóki zegar karty zero nie jest naprawiony, każdy pomiar czasowy robimy
-> na karcie jeden.** Skrypty w `uruchom/` ustawiają to same i wypisują stan
-> zegarów przed startem. Sprawdzenie ręczne:
-> ```bash
-> nvidia-smi --query-gpu=index,clocks.sm,clocks.max.sm,utilization.gpu --format=csv
-> ```
-> Jeśli zegar bieżący jest równy granicznemu przy zerowym obciążeniu — karta
-> jest zablokowana. Przywrócenie: `nvidia-smi -rgc -i 0`.
+Blokada na karcie zero została zdjęta, więc karta zero jest znowu punktem
+odniesienia — wszystkie liczby w pracy pochodzą z niej. **To nie znaczy, że
+sprawdzanie przestało być potrzebne.** Blokada wraca przy każdym
+`nvidia-smi -lgc` albo `-ac`, a przy bezczynności jest niewidoczna: zablokowana
+i sprawna karta wyglądają identycznie, dopóki się ich nie obciąży.
+
+```bash
+python3 narzedzia/sprawdz_zegar.py --karta 0
+```
+
+Skrypt mnoży macierze przez dwadzieścia sekund i próbkuje zegar w trakcie.
+Sprawna karta podnosi go do ponad 80% granicznego; zablokowana zostaje tam,
+gdzie była. Przywrócenie, jeśli trzeba: `nvidia-smi -rgc -i 0`.
 
 ---
 
@@ -271,9 +277,13 @@ teza: mechanika prawie darmowa w symulatorze jest droga w planowaniu.
 # bez karty, same przewidywania
 python3 eksperymenty.py stan --preset III_II --kanaly 0 9 18 --rozbicie
 
-# z pomiarem przepustowości
-python3 eksperymenty.py klasa2 --kanaly 0 9 18 \
-    --wsady 512 768 1024 1280 1536 1792 2048 2304 2560 3072 --czas
+# najpierw odtwórz krzywą z pracy, żeby mieć punkt odniesienia
+python3 eksperymenty.py klasa2 --preset odniesienie --kanaly 0 \
+    --wsady 1024 1536 2048 2176 2304 2560 3072 4096
+
+# potem test reguły: trzy rozmiary stanu, ten sam skan wsadów
+python3 eksperymenty.py klasa2 --preset III_II --kanaly 0 9 18 \
+    --wsady 512 768 1024 1280 1536 1792 2048 2304 2560 3072
 
 # z licznikami sprzętowymi (w kontenerze)
 ./uruchom/w_dockerze.sh uruchom/04_liczniki_l2.sh
@@ -323,10 +333,14 @@ wyszło 76×.
 ## 8. Co odpalić i w jakiej kolejności
 
 ```bash
-# 1. bez karty, kilkanaście minut — same liczby z kompilatora
+# 0. zanim cokolwiek — zegar i odtworzenie liczby z pracy
+python3 narzedzia/sprawdz_zegar.py --karta 0
+python3 eksperymenty.py zgodnosc --czas --powtorzenia 8
+
+# 1. kilkanaście minut — same liczby z kompilatora
 ./uruchom/01_szybkie.sh
 
-# 2. z kartą jeden — przepustowość i test reguły projektowej
+# 2. przepustowość i test reguły projektowej
 ./uruchom/02_czasowe.sh
 
 # 3. liczniki sprzętowe, w kontenerze z uprawnieniami
