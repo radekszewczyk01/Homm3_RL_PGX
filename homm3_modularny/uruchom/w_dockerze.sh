@@ -91,7 +91,10 @@ WSPOLNE=(
 # Dwie sekundy teraz oszczedzaja zgadywania potem: blad srodowiska
 # uruchomieniowego wyglada identycznie jak blad w kodzie, a nim nie jest.
 if [[ "$BEZ_SPRAWDZENIA" != "1" ]]; then
-  BLAD=$(docker run "${WSPOLNE[@]}" "$OBRAZ" true 2>&1 >/dev/null) || {
+  # --entrypoint na sztywno: gdyby obraz mial wlasny punkt wejscia, 'true'
+  # staloby sie jego argumentem i sprawdzenie padalo by bez winy sterownika
+  BLAD=$(docker run --entrypoint /bin/true "${WSPOLNE[@]}" "$OBRAZ" \
+         2>&1 >/dev/null) || {
     echo "Kontener nie wstaje. Docker powiedzial tyle:"
     echo
     echo "  $BLAD"
