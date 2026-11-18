@@ -30,7 +30,11 @@ import sys
 import time
 
 
+_zgloszony_brak = False
+
+
 def smi(zapytanie, karta=None):
+    global _zgloszony_brak
     cmd = ["nvidia-smi", f"--query-gpu={zapytanie}",
            "--format=csv,noheader,nounits"]
     if karta is not None:
@@ -38,7 +42,9 @@ def smi(zapytanie, karta=None):
     try:
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError) as e:
-        print(f"nvidia-smi nie odpowiada: {e}")
+        if not _zgloszony_brak:
+            print(f"nvidia-smi nie odpowiada: {e}")
+            _zgloszony_brak = True
         return []
     return [w.strip() for w in out.stdout.strip().split("\n") if w.strip()]
 
@@ -86,6 +92,13 @@ def main():
         os.environ["CUDA_VISIBLE_DEVICES"] = str(args.karta)
     karta = args.karta if args.karta is not None else 0
 
+    if not smi("name", karta):
+        print("Bez nvidia-smi nie da sie odczytac zegara. Ten skrypt ma sens")
+        print("tylko tam, gdzie widac karte - czyli w kontenerze:")
+        print(f"\n    KARTA=all ./uruchom/w_dockerze.sh \\")
+        print(f"        python3 narzedzia/sprawdz_zegar.py --karta {karta}\n")
+        return 2
+
     maks = liczba(smi("clocks.max.sm", karta)[0]) if smi("clocks.max.sm", karta) else float("nan")
     zegar_bezczynny = liczba(smi("clocks.sm", karta)[0]) if smi("clocks.sm", karta) else float("nan")
     nazwa = smi("name", karta)
@@ -93,14 +106,42 @@ def main():
     print(f"  zegar graniczny:   {maks:.0f} MHz")
     print(f"  zegar bezczynny:   {zegar_bezczynny:.0f} MHz")
 
-    zablokowany_app = smi("clocks.applications.graphics", karta)
-    if zablokowany_app and zablokowany_app[0] not in ("[N/A]", "N/A", ""):
-        print(f"  zegar narzucony:   {zablokowany_app[0]} MHz  "
-              f"<-- ktos ustawil nvidia-smi -ac albo -lgc")
+    # Zegar aplikacyjny: wartosc, do ktorej karta dazy, gdy pracuje. Sam
+    # w sobie NIE jest usterka - administrator ustawia go, zeby karty
+    # zachowywaly sie jednakowo i przewidywalnie. To wlasnie ta wartosc,
+    # a nie zegar graniczny, jest oczekiwana pod obciazeniem.
+    #
+    # Usterka, ktora nas kosztowala weekend, wygladala inaczej: zegar byl
+    # taki sam przy bezczynnosci i przy pelnym obciazeniu. Jesli zegar
+    # bezczynny zszedl do kilkuset MHz, karta nie jest przypieta.
+    zegar_aplikacyjny = float("nan")
+    app = smi("clocks.applications.graphics", karta)
+    if app and app[0] not in ("[N/A]", "N/A", ""):
+        zegar_aplikacyjny = liczba(app[0])
+        print(f"  zegar aplikacyjny: {zegar_aplikacyjny:.0f} MHz  "
+              f"(ustawiony przez nvidia-smi -ac; to wartosc oczekiwana "
+              f"pod obciazeniem)")
+
+    if zegar_bezczynny == zegar_bezczynny and zegar_bezczynny > 1000:
+        print(f"  UWAGA: zegar bezczynny {zegar_bezczynny:.0f} MHz jest "
+              f"wysoki. Sprawna karta schodzi do kilkuset MHz, gdy nic nie "
+              f"liczy.\n         To jest sygnatura przypietego zegara.")
 
     # import JAX-a po ustawieniu widocznosci kart
-    import jax
-    import jax.numpy as jnp
+    try:
+        import jax
+        import jax.numpy as jnp
+    except ImportError:
+        print("\n  Nie moge obciazyc karty: w tym srodowisku nie ma JAX-a.")
+        print("  Na tym serwerze JAX siedzi w obrazie dockerowym, wiec:")
+        print(f"\n    KARTA=all ./uruchom/w_dockerze.sh \\")
+        print(f"        python3 narzedzia/sprawdz_zegar.py --karta {karta}\n")
+        print("  Bez obciazenia da sie powiedziec tylko tyle: zegar "
+              f"bezczynny to {zegar_bezczynny:.0f} MHz.")
+        if zegar_bezczynny == zegar_bezczynny and zegar_bezczynny < 1000:
+            print("  Jest niski, czyli karta NIE jest przypieta na stale -")
+            print("  ale czy podnosi sie pod obciazeniem, pokaze dopiero test.")
+        return 3
 
     print(f"\n  obciazam karte mnozeniem macierzy "
           f"{args.rozmiar}x{args.rozmiar} na {args.sekundy:.0f} s...")
@@ -141,30 +182,64 @@ def main():
     if powody:
         print(f"  sterownik zglasza ograniczenia: {', '.join(powody)}")
 
-    print()
-    udzial = szczyt / maks if maks == maks and maks > 0 else float("nan")
-    stoi_w_miejscu = (max(zegary) - min(zegary)) < 30 and abs(
-        sredni - zegar_bezczynny) < 30
+    # Odniesienie to zegar APLIKACYJNY, jesli jest ustawiony. Karta
+    # z zegarem aplikacyjnym 2550 MHz nie ma siegac 3105 - ma siegac 2550,
+    # i wtedy jest sprawna. Mierzenie jej wzgledem granicznego dawalo by
+    # werdykt "ograniczona" za kazdym razem, co jest bezuzyteczne.
+    odniesienie = (zegar_aplikacyjny if zegar_aplikacyjny == zegar_aplikacyjny
+                   else maks)
+    nazwa_odniesienia = ("aplikacyjnego" if zegar_aplikacyjny == zegar_aplikacyjny
+                         else "granicznego")
+    udzial = szczyt / odniesienie if odniesienie > 0 else float("nan")
 
+    print(f"  szczyt to {100 * udzial:.0f}% zegara {nazwa_odniesienia} "
+          f"({odniesienie:.0f} MHz)", end="")
+    if maks == maks and maks > 0:
+        print(f", a {100 * szczyt / maks:.0f}% granicznego ({maks:.0f} MHz)")
+    else:
+        print()
+
+    # Sygnatura usterki: zegar taki sam przy bezczynnosci i pod obciazeniem.
+    stoi_w_miejscu = ((max(zegary) - min(zegary)) < 30
+                      and abs(sredni - zegar_bezczynny) < 30)
+
+    print()
     if stoi_w_miejscu and udzial < 0.75:
-        print("  WERDYKT: ZEGAR NADAL ZABLOKOWANY.")
+        print("  WERDYKT: ZEGAR PRZYPIETY.")
         print(f"  Zegar nie ruszyl sie z {sredni:.0f} MHz mimo "
-              f"{statistics.mean(uzycia):.0f}% uzycia, a karta potrafi "
-              f"{maks:.0f} MHz.")
-        print("  Nie mierz na tej karcie. Przywrocenie: "
+              f"{statistics.mean(uzycia):.0f}% uzycia, a powinien dojsc do "
+              f"{odniesienie:.0f} MHz.")
+        print("  To jest dokladnie ta usterka, ktora udawala regresje "
+              "w kodzie.")
+        print(f"  Nie mierz na tej karcie. Przywrocenie: "
               f"nvidia-smi -rgc -i {karta}")
         return 1
-    if udzial > 0.80:
+    if udzial > 0.90:
         print("  WERDYKT: KARTA SPRAWNA.")
-        print(f"  Zegar podniosl sie do {szczyt:.0f} MHz, czyli "
-              f"{100 * udzial:.0f}% granicznego. Mozna mierzyc.")
+        print(f"  Zegar podniosl sie z {zegar_bezczynny:.0f} MHz "
+              f"bezczynnie do {szczyt:.0f} MHz pod obciazeniem. "
+              f"Mozna mierzyc.")
+        if zegar_aplikacyjny == zegar_aplikacyjny:
+            print(f"  Do sekcji o powtarzalnosci podaj zegar aplikacyjny "
+                  f"{zegar_aplikacyjny:.0f} MHz - karty sa nim ograniczone "
+                  f"celowo\n  i bez tej informacji liczb nie da sie "
+                  f"powtorzyc.")
+        return 0
+    if udzial > 0.75:
+        print("  WERDYKT: SPRAWNA, ALE SCIETA.")
+        print(f"  Zegar sie podnosi (z {zegar_bezczynny:.0f} do "
+              f"{szczyt:.0f} MHz), wiec nie jest przypiety, ale nie dochodzi "
+              f"do {odniesienie:.0f} MHz.")
+        print(f"  Przy mocy {statistics.mean(moce):.0f} W i rozrzucie "
+              f"{min(zegary):.0f}-{max(zegary):.0f} MHz to zwykle "
+              f"ograniczenie mocy albo temperatury.")
+        print("  Mierzyc mozna, ale zapisz te liczby razem z wynikiem.")
         return 0
     print("  WERDYKT: NIEJASNY.")
-    print(f"  Szczyt {szczyt:.0f} MHz to {100 * udzial:.0f}% granicznego. "
-          f"To moze byc zwykle ograniczenie mocy albo temperatury "
-          f"(moc {statistics.mean(moce):.0f} W), a nie blokada.")
-    print("  Sprawdz te sama liczbe na karcie, o ktorej wiesz, ze jest "
-          "sprawna, i porownaj.")
+    print(f"  Szczyt {szczyt:.0f} MHz to tylko {100 * udzial:.0f}% "
+          f"oczekiwanych {odniesienie:.0f} MHz, ale zegar nie stoi w miejscu.")
+    print("  Zmierz to samo na karcie, o ktorej wiesz, ze jest sprawna, "
+          "i porownaj.")
     return 0
 
 

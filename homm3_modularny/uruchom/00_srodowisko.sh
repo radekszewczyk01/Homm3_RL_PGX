@@ -33,6 +33,18 @@ export XLA_FLAGS="${XLA_FLAGS} --xla_gpu_deterministic_ops=true"
 export WYNIKI=${WYNIKI:-wyniki}
 mkdir -p "$WYNIKI"
 
+# Na tym serwerze JAX jest tylko w obrazie dockerowym. Lepiej powiedziec to
+# od razu, niz pozwolic kazdemu skryptowi wywalic sie osobno na importcie.
+if ! python3 -c "import jax" 2>/dev/null; then
+  echo
+  echo "W tym srodowisku nie ma JAX-a - jestes na hoscie, nie w kontenerze."
+  echo "Uruchom ten skrypt przez:"
+  echo
+  echo "    ./uruchom/w_dockerze.sh $0"
+  echo
+  return 1 2>/dev/null || exit 1
+fi
+
 echo "karta:        ${CUDA_VISIBLE_DEVICES}"
 echo "udzial pam.:  ${XLA_PYTHON_CLIENT_MEM_FRACTION}"
 echo "wyniki:       ${WYNIKI}"

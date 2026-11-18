@@ -82,7 +82,22 @@ Rdzeń nie wie o żadnej mechanice. Każda klasa nie wie o pozostałych.
 
 ## 3. Instalacja
 
-Kod działa na tym, co już masz na serwerze. Lokalnie wystarczy:
+**Na serwerze JAX jest tylko w obrazie dockerowym**, więc wszystko idzie przez
+kontener — również zwykłe skrypty, nie tylko te zbierające liczniki:
+
+```bash
+docker build -f Dockerfile.profil -t homm3_profil:latest \
+    --build-arg BAZA=homm3_az_v2:latest .
+
+./uruchom/w_dockerze.sh uruchom/01_szybkie.sh
+./uruchom/w_dockerze.sh python3 eksperymenty.py zgodnosc --czas
+KARTA=all ./uruchom/w_dockerze.sh python3 narzedzia/sprawdz_zegar.py --karta 1
+```
+
+`KARTA=0|1|2` przekazuje jedną kartę (w kontenerze widać ją jako numer 0),
+`KARTA=all` przekazuje wszystkie trzy i wtedy numery są jak na hoście.
+
+Gdziekolwiek indziej wystarczy:
 
 ```bash
 pip install jax jaxlib flax pgx matplotlib
@@ -333,23 +348,26 @@ wyszło 76×.
 ## 8. Co odpalić i w jakiej kolejności
 
 ```bash
-# 0. zanim cokolwiek — zegar i odtworzenie liczby z pracy
-python3 narzedzia/sprawdz_zegar.py --karta 0
-python3 eksperymenty.py zgodnosc --czas --powtorzenia 8
-
-# 1. kilkanaście minut — same liczby z kompilatora
-./uruchom/01_szybkie.sh
-
-# 2. przepustowość i test reguły projektowej
-./uruchom/02_czasowe.sh
-
-# 3. liczniki sprzętowe, w kontenerze z uprawnieniami
+# obraz raz
 docker build -f Dockerfile.profil -t homm3_profil:latest \
     --build-arg BAZA=homm3_az_v2:latest .
+
+# 0. zanim cokolwiek — zegar i odtworzenie liczby z pracy
+KARTA=all ./uruchom/w_dockerze.sh \
+    bash -c 'for K in 0 1 2; do python3 narzedzia/sprawdz_zegar.py --karta $K; done'
+./uruchom/w_dockerze.sh python3 eksperymenty.py zgodnosc --czas --powtorzenia 8
+
+# 1. kilkanaście minut — same liczby z kompilatora
+./uruchom/w_dockerze.sh uruchom/01_szybkie.sh
+
+# 2. przepustowość i test reguły projektowej (uruchom sam, nic obok)
+./uruchom/w_dockerze.sh uruchom/02_czasowe.sh
+
+# 3. liczniki sprzętowe (w tmuksie, ~1 h)
 ./uruchom/w_dockerze.sh uruchom/04_liczniki_l2.sh
 
-# 4. drzewo
-./uruchom/03_drzewo.sh
+# 4. drzewo (w tmuksie, uruchom sam)
+./uruchom/w_dockerze.sh uruchom/03_drzewo.sh
 ```
 
 Każdy skrypt zapisuje surowy wynik do `wyniki/*.json` razem z opisem otoczenia

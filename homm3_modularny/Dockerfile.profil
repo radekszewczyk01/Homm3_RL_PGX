@@ -20,6 +20,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV PATH=/opt/nvidia/nsight-compute:/usr/local/cuda/bin:${PATH}
 
-# mctx jest potrzebny tylko do pomiarow drzewa; jesli jest juz w bazie,
-# ta linia nic nie zmieni
-RUN pip install --no-cache-dir mctx || true
+# mctx jest potrzebny do pomiarow drzewa, matplotlib do wykresow.
+# Jesli sa juz w bazie, ta linia nic nie zmieni. Celowo bez wersji - nie
+# chcemy ruszyc dzialajacego zestawu CUDA i JAX-a z obrazu bazowego.
+RUN pip install --no-cache-dir mctx matplotlib || true
+
+# Szybkie sprawdzenie, ze obraz jest kompletny:
+#   docker run --rm --gpus device=0 homm3_profil:latest \
+#       python3 -c "import jax, flax, pgx, mctx, matplotlib; print(jax.devices())"
+#   docker run --rm --gpus device=0 homm3_profil:latest ncu --version
