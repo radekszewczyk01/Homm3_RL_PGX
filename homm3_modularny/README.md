@@ -64,12 +64,17 @@ narzedzia/
   wykres_rezydencji.py     wykresy i tabela do sekcji o L2
 
 uruchom/
+  kolejka.sh          CAŁA SERIA po kolei, w tmuksie, odporna na zerwanie ssh
+  stan.sh             gdzie jest kolejka, bez wchodzenia do tmuksa
   00_srodowisko.sh    wspólne ustawienia (karta, pamięć, powtarzalność)
   01_szybkie.sh       wszystko, co nie wymaga sprawnego zegara
   02_czasowe.sh       pomiary czasowe
   03_drzewo.sh        koszt przeszukiwania (mctx)
   04_liczniki_l2.sh   liczniki sprzętowe — zamyka TODO z sekcji o L2
   w_dockerze.sh       uruchamia dowolny z powyższych w kontenerze
+
+Każdy skrypt etapu przyjmuje `PROBNIE=1` — skraca wszystko do minimum, żeby
+sprawdzić, że startuje. Wyniki z takiego przebiegu są bez wartości.
 
 Dockerfile.profil   obraz z Nsight Compute
 data/               tu wrzuć homm3_static_lut.npy
@@ -347,27 +352,48 @@ wyszło 76×.
 
 ## 8. Co odpalić i w jakiej kolejności
 
+Jedna komenda na całą serię. Kolejka sama zakłada sesję tmuksa i się do niej
+odłącza, więc terminal można zamknąć od razu — zerwanie ssh nic nie przerwie.
+
 ```bash
 # obraz raz
 docker build -f Dockerfile.profil -t homm3_profil:latest \
     --build-arg BAZA=homm3_az_v2:latest .
 
-# 0. zanim cokolwiek — zegar i odtworzenie liczby z pracy
-KARTA=all ./uruchom/w_dockerze.sh \
-    bash -c 'for K in 0 1 2; do python3 narzedzia/sprawdz_zegar.py --karta $K; done'
-./uruchom/w_dockerze.sh python3 eksperymenty.py zgodnosc --czas --powtorzenia 8
+# najpierw próba: 10-15 min, sprawdza że KAŻDY etap startuje i dochodzi do końca
+./uruchom/kolejka.sh --probnie
+./uruchom/stan.sh                  # gdzie jest
+./uruchom/stan.sh -w               # odświeża co 20 s
 
-# 1. kilkanaście minut — same liczby z kompilatora
-./uruchom/w_dockerze.sh uruchom/01_szybkie.sh
+# jeśli wszystkie etapy wyszły 'zrobiony' — pełna seria, ~2 h
+tmux kill-session -t pomiary
+./uruchom/kolejka.sh
+```
 
-# 2. przepustowość i test reguły projektowej (uruchom sam, nic obok)
+Etapy idą po kolei i każdy ma swój log w `wyniki/logi/`:
+
+| etap | co robi | krytyczny |
+|---|---|---|
+| `zegar` | czy któraś karta nie ma przypiętego zegara | nie |
+| `brama` | pięć liczb z pracy + odtworzenie 371 011 kroków/s | **tak** |
+| `szybkie` | zgodność, semantyka, pokrycie, ablacja, narastanie, klasa I | nie |
+| `czasowe` | krzywa przepustowości i test reguły projektowej | nie |
+| `liczniki` | skan `ncu` rezydencji L2 | nie |
+| `drzewo` | koszt przeszukiwania z mctx | nie |
+
+`brama` jest krytyczna: jeśli konfiguracja odniesienia nie odtwarza liczb
+z pracy, kolejka **zatrzymuje się** i oznacza pozostałe etapy jako pominięte,
+bo dalsze pomiary czasowe byłyby bez wartości. Pozostałe etapy nie zabijają
+serii — jeśli na przykład zabraknie `ncu`, resztę policzy normalnie.
+
+`stan.sh` pokazuje też, czy przebieg został przerwany: etap w stanie `trwa`
+przy nieistniejącej sesji tmuksa oznacza ubity proces albo restart maszyny.
+
+Pojedyncze etapy nadal idą osobno, jeśli trzeba coś powtórzyć:
+
+```bash
 ./uruchom/w_dockerze.sh uruchom/02_czasowe.sh
-
-# 3. liczniki sprzętowe (w tmuksie, ~1 h)
-./uruchom/w_dockerze.sh uruchom/04_liczniki_l2.sh
-
-# 4. drzewo (w tmuksie, uruchom sam)
-./uruchom/w_dockerze.sh uruchom/03_drzewo.sh
+PROBNIE=1 ./uruchom/w_dockerze.sh uruchom/04_liczniki_l2.sh
 ```
 
 Każdy skrypt zapisuje surowy wynik do `wyniki/*.json` razem z opisem otoczenia

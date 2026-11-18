@@ -386,20 +386,37 @@ def cmd_ablacja3(args):
         print(f"  zmierzono: {etykieta}")
         return k
 
-    pelna = zmierz(preset("odniesienie"), "odniesienie (wszystko)")
+    # Plan najpierw, pomiar potem - zeby --max-konfiguracji dalo sie zastosowac
+    # bez powtarzania listy. Pelna konfiguracja i goly rdzen zostaja zawsze,
+    # bo bez nich tabela nie ma odniesienia z gory ani z dolu.
+    plan = [(preset("odniesienie"), "odniesienie (wszystko)")]
     for m in MECHANIKI_III:
         if m == "bez_kary_zwarcia":
             continue  # mierzone razem z kara_zwarcia ponizej
-        zmierz(_kfg_bez(m), f"bez {m}")
-    zmierz(dataclasses.replace(preset("odniesienie"),
-                               bez_kary_zwarcia=False,
-                               nazwa="bez_zdolnosci_znoszacej"),
-           "bez zdolnosci znoszacej kare")
-    zmierz(dataclasses.replace(preset("odniesienie"),
-                               oddech=False, trojglowy=False, dookolny=False,
-                               nazwa="bez_wielocelowych"),
-           "bez wszystkich wielocelowych")
-    goly = zmierz(preset("rdzen"), "rdzen (nic z klasy III)")
+        plan.append((_kfg_bez(m), f"bez {m}"))
+    plan.append((dataclasses.replace(preset("odniesienie"),
+                                     bez_kary_zwarcia=False,
+                                     nazwa="bez_zdolnosci_znoszacej"),
+                 "bez zdolnosci znoszacej kare"))
+    plan.append((dataclasses.replace(preset("odniesienie"),
+                                     oddech=False, trojglowy=False,
+                                     dookolny=False,
+                                     nazwa="bez_wielocelowych"),
+                 "bez wszystkich wielocelowych"))
+    ogon = (preset("rdzen"), "rdzen (nic z klasy III)")
+
+    n_max = getattr(args, "max_konfiguracji", None)
+    if n_max and len(plan) > n_max:
+        print(f"  [--max-konfiguracji {n_max}] mierze tylko "
+              f"{n_max} z {len(plan)} konfiguracji plus goly rdzen; "
+              f"tabela bedzie niepelna")
+        plan = plan[:n_max]
+    plan.append(ogon)
+
+    pelna = zmierz(*plan[0])
+    for kfg, etykieta in plan[1:-1]:
+        zmierz(kfg, etykieta)
+    goly = zmierz(*plan[-1])
 
     # koszt wzgledny
     for w in wiersze:
@@ -446,6 +463,10 @@ def cmd_narastanie(args):
     _naglowek(f"NARASTANIE KLAS (wsad {args.wsad})")
     B = args.wsad
     kolejnosc = ["rdzen", "III", "III_II", "III_II_IV", "wszystko"]
+    n_max = getattr(args, "max_konfiguracji", None)
+    if n_max and len(kolejnosc) > n_max:
+        print(f"  [--max-konfiguracji {n_max}] tabela bedzie niepelna")
+        kolejnosc = kolejnosc[:n_max]
     wiersze = []
     for nazwa in kolejnosc:
         kfg = preset(nazwa)
@@ -504,7 +525,12 @@ def cmd_klasa1(args):
     _naglowek("KLASA I: KOSZT POWIEKSZENIA PRZESTRZENI AKCJI")
     B = args.wsad
     wiersze = []
-    for n in range(len(CZARY_OBRAZENIOWE) + 1):
+    ile_czarow = len(CZARY_OBRAZENIOWE) + 1
+    n_max = getattr(args, "max_konfiguracji", None)
+    if n_max and ile_czarow > n_max:
+        print(f"  [--max-konfiguracji {n_max}] tabela bedzie niepelna")
+        ile_czarow = n_max
+    for n in range(ile_czarow):
         kfg = dataclasses.replace(preset("odniesienie"),
                                   czary=CZARY_OBRAZENIOWE[:n],
                                   nazwa=f"czarow_{n}")
@@ -787,6 +813,11 @@ def main(argv=None):
                              "kompilatora)")
         sp.add_argument("--kroki", type=int, default=50)
         sp.add_argument("--powtorzenia", type=int, default=5)
+        sp.add_argument("--max-konfiguracji", type=int, default=None,
+                        dest="max_konfiguracji",
+                        help="mierz tylko tyle pierwszych konfiguracji; "
+                             "do sprawdzenia, ze skrypt startuje - wynik "
+                             "jest wtedy niepelny i bez wartosci")
         return sp
 
     s = wspolne(pod.add_parser("zgodnosc",

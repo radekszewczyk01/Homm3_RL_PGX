@@ -28,7 +28,11 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 # Powtarzalnosc: bez tego kompilator moze wybrac inny plan przy kazdym
 # uruchomieniu i porownanie konfiguracji przestaje byc uczciwe.
-export XLA_FLAGS="${XLA_FLAGS} --xla_gpu_deterministic_ops=true"
+#
+# :- jest tu konieczne. Skrypty etapow chodza z `set -u`, wiec odwolanie do
+# nieustawionej zmiennej konczy je natychmiast - a wszystkie je wczesniej
+# sourcuja, czyli jedna taka literowka wywala cala serie.
+export XLA_FLAGS="${XLA_FLAGS:-} --xla_gpu_deterministic_ops=true"
 
 export WYNIKI=${WYNIKI:-wyniki}
 mkdir -p "$WYNIKI"

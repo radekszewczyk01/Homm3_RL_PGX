@@ -37,8 +37,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source uruchom/00_srodowisko.sh
 
-KANALY=${KANALY:-"0 9 18"}
-WSADY=${WSADY:-"512 768 1024 1280 1536 1792 2048 2304 2560 3072 4096"}
+if [[ "${PROBNIE:-0}" == "1" ]]; then
+  echo "### PRZEBIEG PROBNY - wyniki bez wartosci, sprawdzamy tylko, ze dziala"
+  KANALY="0"; WSADY="256"; KROKOW=2
+else
+  KANALY=${KANALY:-"0 9 18"}
+  WSADY=${WSADY:-"512 768 1024 1280 1536 1792 2048 2304 2560 3072 4096"}
+  KROKOW=${KROKOW:-5}
+fi
 PRESET=${PRESET:-III_II}
 METRYKI="gpu__time_duration.sum,lts__t_sector_hit_rate.pct,dram__bytes.sum.per_second,l1tex__t_sector_hit_rate.pct"
 
@@ -78,7 +84,7 @@ for K in $KANALY; do
            --cache-control none --metrics "$METRYKI" \
            --csv --target-processes all \
            python3 narzedzia/krotki_przebieg.py --preset "$PRESET" \
-               --kanaly "$K" --wsad "$B" --kroki 5 \
+               --kanaly "$K" --wsad "$B" --kroki "$KROKOW" \
            > "$KAT/ncu_${B}.csv" 2>"$KAT/ncu_${B}.log"; then
       echo "ok"
     else
