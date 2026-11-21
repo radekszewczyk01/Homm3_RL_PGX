@@ -48,32 +48,54 @@ def bajty_jadra(punkt):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--plik", default="wyniki/rezydencja.json")
+    p.add_argument("--plik", nargs="+", default=["wyniki/rezydencja.json"],
+                   help="jeden albo wiele plikow rezydencja.json; podanie "
+                        "kilku pozwala porownac rozne konfiguracje")
     p.add_argument("--prog-nasycenia", type=float, default=30.0,
                    dest="prog_nasycenia",
                    help="trafienia w L2 ponizej tej wartosci traktujemy jako "
                         "pelne nasycenie, czyli brak cachowania")
     args = p.parse_args()
 
-    try:
-        dane = json.load(open(args.plik))
-    except (OSError, json.JSONDecodeError) as e:
-        print(f"Nie moge wczytac {args.plik}: {e}")
-        print("Najpierw policz wykresy: narzedzia/wykres_rezydencji.py")
-        return 1
+    import os
 
-    serie = dane.get("serie") or []
-    punkty = dane.get("punkty") or []
+    serie, punkty = [], []
+    for sciezka in args.plik:
+        try:
+            dane = json.load(open(sciezka))
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"Nie moge wczytac {sciezka}: {e}")
+            print("Najpierw policz wykresy: narzedzia/wykres_rezydencji.py")
+            return 1
+        # |A| nie ma w rezydencja.json, ale lezy obok, w rozmiarach stanu
+        rozmiary = {}
+        obok = os.path.join(os.path.dirname(sciezka), "rozmiary_stanu.json")
+        if os.path.exists(obok):
+            try:
+                for w in json.load(open(obok)):
+                    rozmiary[int(w["D"])] = w
+            except (OSError, json.JSONDecodeError, KeyError, ValueError):
+                pass
+        etykieta = os.path.basename(os.path.dirname(sciezka)) or sciezka
+        for s in dane.get("serie") or []:
+            s = dict(s)
+            s["plik"] = etykieta
+            s["rozmiary"] = rozmiary
+            serie.append(s)
+        for q in dane.get("punkty") or []:
+            q = dict(q)
+            q["plik"] = etykieta
+            punkty.append(q)
     if not serie:
-        print("Brak serii w pliku.")
+        print("Brak serii w podanych plikach.")
         return 1
 
     print("=" * 78)
     print(" SLAD PAMIECIOWY MIERZONEGO JADRA (z ruchu do DRAM za progiem)")
     print("=" * 78)
     print()
-    print(f"{'D [B]':>8} {'2D [B]':>9} {'slad/srod.':>11} {'slad/2D':>8}"
-          f" {'punktow':>8}  wsady za progiem")
+    print(f"{'konfiguracja':<16} {'D [B]':>8} {'|A|':>6} {'slad/srod.':>11}"
+          f" {'slad/2D':>8} {'B 50%':>7} {'B50*slad':>10} {'% L2':>6}")
     print("-" * 78)
 
     wyniki = []
@@ -90,16 +112,65 @@ def main():
         slady = [bajty_jadra(r) / r["wsad"] for r in nasycone]
         slad = sum(slady) / len(slady)
         rozrzut = (max(slady) - min(slady)) / slad * 100
-        wyniki.append({"D": D, "slad": slad, "rozrzut_pct": rozrzut})
-        print(f"{D:>8,} {2 * D:>9,} {slad:>11,.0f} {slad / (2 * D):>8.3f}"
-              f" {len(nasycone):>8}  "
-              f"{', '.join(str(r['wsad']) for r in nasycone)}")
+        prog = next((q.get("B_polowiczny") for q in punkty
+                     if q.get("D") == D and q.get("plik") == wpis.get("plik")
+                     and q.get("B_polowiczny")), None)
+        A = (wpis.get("rozmiary", {}).get(D) or {}).get("A")
+        rezydentne = prog * slad / 2 ** 20 if prog else None
+        udzial = rezydentne / L2_MIB if rezydentne else None
+        wyniki.append({"D": D, "slad": slad, "rozrzut_pct": rozrzut,
+                       "prog": prog, "A": A, "rezydentne_mib": rezydentne,
+                       "udzial": udzial, "plik": wpis.get("plik", "")})
+        print(f"{str(wpis.get('plik', ''))[:16]:<16} {D:>8,} "
+              f"{(f'{A:,}' if A else '-'):>6} {slad:>11,.0f} "
+              f"{slad / (2 * D):>8.3f} "
+              f"{(f'{prog:.0f}' if prog else '-'):>7} "
+              f"{(f'{rezydentne:.1f}M' if rezydentne else '-'):>10} "
+              f"{(f'{udzial:.3f}' if udzial else '-'):>6}")
         if rozrzut > 15:
-            print(f"{'':>8} (rozrzut miedzy punktami {rozrzut:.0f}% - "
+            print(f"{'':>16} (rozrzut miedzy punktami {rozrzut:.0f}% - "
                   f"traktuj te liczbe ostroznie)")
 
+    z_progiem = [w for w in wyniki if w["udzial"]]
+    if len(z_progiem) >= 2:
+        udzialy = [w["udzial"] for w in z_progiem]
+        sr = sum(udzialy) / len(udzialy)
+        rozrzut = (max(udzialy) - min(udzialy)) / sr * 100
+        print()
+        print("=" * 78)
+        print(" CZY PROG JEST WYZNACZANY REZYDENCJA TEGO JADRA")
+        print("=" * 78)
+        print()
+        print(f" Iloczyn progu i sladu, w jednostkach pojemnosci L2:")
+        for w in z_progiem:
+            print(f"   {w['plik'][:20]:<20} D = {w['D']:>6,} B   "
+                  f"{w['udzial']:.3f}")
+        print(f"\n   srednia {sr:.3f}, rozrzut {rozrzut:.1f} %")
+        print()
+        if rozrzut < 8:
+            print(f" STALY. Prog wypada tam, gdzie slad mierzonego jadra"
+                  f" zajmuje\n {sr:.0%} pojemnosci nominalnej L2 - i to przy"
+                  f" rozmiarze stanu rozniacym\n sie"
+                  f" {max(w['D'] for w in z_progiem) / min(w['D'] for w in z_progiem):.2f}"
+                  f" raza. Czyli wielkoscia rezydentna NIE jest stan,"
+                  f" tylko\n slad jadra, i regula projektowa ma postac:")
+            print()
+            print(f"     B_opt = {sr:.2f} * C_L2 / slad_jadra")
+            print()
+            print(f" To jest mocniejsze stwierdzenie niz wersja ze stanem:"
+                  f" wspolczynnik\n blisko jedynki znaczy, ze cala pamiec"
+                  f" podreczna jest uzyteczna, a nie\n jej czesc. Poprzedni"
+                  f" wspolczynnik 0,57 byl skutkiem zanizonego\n mianownika,"
+                  f" nie wlasnoscia sprzetu.")
+        else:
+            print(f" NIESTALY ({rozrzut:.0f} %). Rezydencja tego jednego jadra"
+                  f" nie wystarcza,\n zeby wyjasnic polozenie progu."
+                  f" W artykule opisz zmierzone zjawisko\n bez wzoru, ktory"
+                  f" ma je przewidywac.")
+        print()
+
     if len(wyniki) < 2:
-        print("\nZa malo serii, zeby cokolwiek porownac.")
+        print("\nZa malo serii, zeby porownac slady miedzy konfiguracjami.")
         return 0
 
     print()
