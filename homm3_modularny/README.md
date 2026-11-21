@@ -208,6 +208,26 @@ z kompilatora były wtedy nietknięte i od razu wskazywały, że kod jest bez wi
 **Liczby z pomiaru czasu**: kroki na sekundę, trafienia w pamięć podręczną,
 ruch do DRAM. Niezbędne, żeby pokazać *skutek*, ale wymagają sprawnej karty.
 
+### Metoda pomiaru przepustowości
+
+Trzy warianty, wybierane przez `--metoda`. Domyślny i **jedyny porównywalny
+z pracą** to `benchark`: ciąg kroków jako jeden `lax.scan`, wznawianie
+zakończonych epizodów, czas **najkrótszy** z powtórzeń. Tak powstała liczba
+371 011 kroków/s.
+
+Wariant `silnik` to to samo bez wznawiania. Wychodzi około 1,8 raza wyżej
+i **nie wolno** go zestawiać z liczbami z pracy. Oba razem mierzy podkomenda
+`wznawianie`, a ich stosunek jest osobnym wynikiem: w sformułowaniu tensorowym
+`vmap(env.init)` wykonuje się w każdym kroku dla *wszystkich* środowisk,
+a `where` tylko wybiera, które stany podmienić. Przy losowej polityce kończy
+się jeden epizod na kilkanaście tysięcy kroków — płacimy więc pełny koszt
+wznowienia 2048 środowisk, żeby wznowić dwa. To ta sama teza co przy
+mechanikach klasy III, tylko w innym miejscu programu.
+
+Pomyłka tu jest tania i trudna do wyłapania: pierwsza wersja tej warstwy
+mierzyła bez wznawiania i dawała 665 tysięcy kroków/s zamiast 371 tysięcy,
+co wyglądało jak 1,79-krotne przyspieszenie sprzętu.
+
 Blokada na karcie zero została zdjęta, więc karta zero jest znowu punktem
 odniesienia — wszystkie liczby w pracy pochodzą z niej. **To nie znaczy, że
 sprawdzanie przestało być potrzebne.** Blokada wraca przy każdym

@@ -186,60 +186,115 @@ def model_rezydencji(D: int, l2_mib: float = L2_MIB_DOMYSLNIE,
 # 4. PRZEPUSTOWOSC
 # ===========================================================================
 
-def przepustowosc(env, B: int, kroki: int = 100, powtorzenia: int = 5,
-                  rozgrzewka: int = 3, petla: str = "python",
-                  ziarno: int = 0) -> dict:
+METODY = ("benchark", "silnik", "python")
+
+
+def zbuduj_przebieg(env, B: int, kroki: int, ze_wznawianiem: bool):
+    """Ciag krokow jako JEDNA petla w grafie (lax.scan).
+
+    scan, a nie petla pythonowa: mierzymy czas silnika, a nie narzut
+    interpretera i kolejkowania wywolan asynchronicznych.
+
+    ze_wznawianiem=True odtwarza metodyke benchark.py z pracy, czyli
+    wznawianie zakonczonych epizodow. Trzeba przy tym wiedzieć, CO to
+    dokladnie znaczy w sformulowaniu tensorowym: `vmap(env.init)` wykonuje
+    sie w KAZDYM kroku dla WSZYSTKICH srodowisk, niezaleznie od tego, czy
+    ktorykolwiek epizod sie zakonczyl, a `where` tylko wybiera, ktore stany
+    podmienic. Przy losowej polityce konczy sie okolo 139 epizodow na 204 800
+    krokow - czyli placimy pelny koszt wznowienia 2048 srodowisk, zeby
+    wznowic dwa.
+
+    To nie jest niedoskonalosc pomiaru, to ta sama teza co w calym artykule,
+    tylko w innym miejscu: bez rozgalezien placi sie za kazda mozliwosc,
+    a nie za te, ktora zachodzi. Dlatego mierzymy obie wielkosci i podajemy
+    ich stosunek.
+    """
+    def jeden(carry, _):
+        st, klucz = carry
+        klucz, k_akcja, k_krok, k_reset = jax.random.split(klucz, 4)
+        logity = jnp.where(st.legal_action_mask, 0.0, -1e9)
+        akcje = jax.random.categorical(k_akcja, logity, axis=-1)
+        st = jax.vmap(env.step)(st, akcje, jax.random.split(k_krok, B))
+        if ze_wznawianiem:
+            gotowe = st.terminated | st.truncated
+            swieze = jax.vmap(env.init)(jax.random.split(k_reset, B))
+            st = jax.tree_util.tree_map(
+                lambda a, b: jnp.where(
+                    gotowe.reshape((-1,) + (1,) * (a.ndim - 1)), b, a),
+                st, swieze)
+        return (st, klucz), None
+
+    def przebieg(st, klucz):
+        (st, klucz), _ = jax.lax.scan(jeden, (st, klucz), None, length=kroki)
+        return st, klucz
+
+    return przebieg
+
+
+def przepustowosc(env, B: int, kroki: int = 50, powtorzenia: int = 8,
+                  rozgrzewka: int = 1, metoda: str = "benchark",
+                  petla: str = None, ziarno: int = 0) -> dict:
     """Kroki srodowiska na sekunde.
 
-    petla="python"  - jeden skompilowany krok wsadowy na iteracje Pythona,
-                      bariera synchronizacji na koncu serii. Tak mierzyl
-                      benchark.py, wiec wyniki sa porownywalne z praca.
-    petla="scan"    - caly ciag krokow jako jedna petla w grafie. Zdejmuje
-                      narzut wysylki, wiec daje wyzsza liczbe; uzywaj, gdy
-                      interesuje cie sam silnik, a nie petla uczenia.
+    metoda="benchark" - DOMYSLNA i jedyna porownywalna z praca: scan,
+                        wznawianie zakonczonych epizodow, czas NAJKROTSZY
+                        z powtorzen. Tak powstala liczba 371 011 krokow/s.
+    metoda="silnik"   - to samo bez wznawiania, czyli sam koszt kroku.
+                        Wychodzi okolo 1,8 raza wyzej; uzywaj tylko tam,
+                        gdzie interesuje cie silnik w oderwaniu od petli
+                        uczenia, i NIGDY nie zestawiaj z liczbami z pracy.
+    metoda="python"   - petla po stronie Pythona, czas sredni. Zostawiona
+                        do porownan, nie do artykulu.
+
+    Czas najkrotszy, a nie sredni, bo mierzymy zdolnosc sprzetu, a nie
+    obciazenie maszyny przez innych. Tak liczy benchark.py i tak trzeba,
+    zeby liczby dalo sie zestawic.
     """
+    if petla is not None:          # zgodnosc ze starym wywolaniem
+        metoda = {"scan": "silnik", "python": "python"}.get(petla, metoda)
+    if metoda not in METODY:
+        raise ValueError(f"nieznana metoda {metoda!r}; dostepne: {METODY}")
+
     klucz = jax.random.PRNGKey(ziarno)
     st = jax.jit(jax.vmap(env.init))(jax.random.split(klucz, B))
 
-    krok = jax.jit(jax.vmap(env.step))
+    if metoda == "python":
+        krok = jax.jit(jax.vmap(env.step))
 
-    def jeden(s, k):
-        k1, k2 = jax.random.split(k)
-        return krok(s, losuj_legalne(s, k1), jax.random.split(k2, B)), None
-
-    if petla == "scan":
-        @jax.jit
-        def seria(s, k):
-            s, _ = jax.lax.scan(jeden, s, jax.random.split(k, kroki))
-            return s
-    else:
         def seria(s, k):
             for i in range(kroki):
-                s, _ = jeden(s, jax.random.fold_in(k, i))
-            return s
+                k1 = jax.random.fold_in(k, i)
+                k2 = jax.random.fold_in(k, 10_000 + i)
+                s = krok(s, losuj_legalne(s, k1), jax.random.split(k2, B))
+            return s, k
+    else:
+        seria = jax.jit(zbuduj_przebieg(env, B, kroki,
+                                        metoda == "benchark"))
 
-    # rozgrzewka: kompilacja plus ustabilizowanie zegara
-    for i in range(rozgrzewka):
-        st = seria(st, jax.random.fold_in(klucz, 1000 + i))
+    for i in range(max(rozgrzewka, 1)):
+        st, _ = seria(st, jax.random.fold_in(klucz, 1000 + i))
     jax.block_until_ready(st)
 
     czasy = []
     for i in range(powtorzenia):
         t0 = time.perf_counter()
-        st = seria(st, jax.random.fold_in(klucz, i))
+        st, _ = seria(st, jax.random.fold_in(klucz, i))
         jax.block_until_ready(st)
         czasy.append(time.perf_counter() - t0)
 
     czasy = np.array(czasy)
+    najkrotszy = float(czasy.min())
     krokow = B * kroki
     return {
         "wsad": B,
-        "krokow_na_sekunde": float(krokow / czasy.mean()),
+        "metoda": metoda,
+        "krokow_na_sekunde": float(krokow / najkrotszy),
+        "krokow_na_sekunde_mediana": float(krokow / float(np.median(czasy))),
+        "czas_najkrotszy_s": najkrotszy,
+        "czas_mediana_s": float(np.median(czasy)),
         "odchylenie_pct": float(100 * czasy.std() / czasy.mean()),
-        "czas_sredni_s": float(czasy.mean()),
         "powtorzenia": powtorzenia,
         "kroki_w_serii": kroki,
-        "petla": petla,
     }
 
 

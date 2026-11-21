@@ -29,7 +29,8 @@ import numpy as np
 from homm3 import (MECHANIKI_II, MECHANIKI_III, MECHANIKI_IV, Konfiguracja,
                    check_invariants, preset, raport_hakow, zbuduj)
 from homm3.konfiguracja import CZARY_OBRAZENIOWE
-from homm3.pomiar import (analiza_kosztu, koszt_drzewa, losuj_legalne,
+from homm3.pomiar import (METODY, analiza_kosztu, koszt_drzewa,
+                          losuj_legalne,
                           model_drzewa, model_rezydencji, otoczenie,
                           przepustowosc, rozmiar_stanu, zapisz)
 from homm3.rdzen import MAX_AKCJI_RDZENIA, MAX_UNITS
@@ -125,12 +126,18 @@ def cmd_zgodnosc(args):
               "procesorem nic nie znaczy.")
     elif args.czas:
         print(f"\n  odtworzenie przepustowosci z pracy "
-              f"(wsad {WSAD_Z_PRACY})...")
+              f"(wsad {WSAD_Z_PRACY}, metoda "
+              f"{getattr(args, 'metoda', 'benchark')})...")
+        print("    metoda 'benchark': scan, wznawianie epizodow, czas "
+              "najkrotszy -\n    tylko tak liczona liczba daje sie zestawic "
+              "z praca")
         srod = otoczenie()
         print(f"    karta: {srod['gpu_nazwa']}, zegar {srod['gpu_zegar_sm']} "
               f"z {srod['gpu_zegar_sm_max']}")
-        pomiar_czasu = przepustowosc(env, WSAD_Z_PRACY, kroki=args.kroki,
-                                     powtorzenia=args.powtorzenia)
+        pomiar_czasu = przepustowosc(
+            env, WSAD_Z_PRACY, kroki=args.kroki,
+            powtorzenia=args.powtorzenia,
+            metoda=getattr(args, "metoda", "benchark"))
         zmierzone = pomiar_czasu["krokow_na_sekunde"]
         stosunek = zmierzone / KROKOW_NA_SEKUNDE_Z_PRACY
         print(f"    zmierzone  {zmierzone:>12,.0f} krokow/s  "
@@ -380,8 +387,9 @@ def cmd_ablacja3(args):
         k["D"] = rozmiar_stanu(env)
         k["A"] = kfg.liczba_akcji
         if args.czas:
-            k.update(przepustowosc(env, B, kroki=args.kroki,
-                                   powtorzenia=args.powtorzenia))
+            k.update(przepustowosc(
+                env, B, kroki=args.kroki, powtorzenia=args.powtorzenia,
+                metoda=getattr(args, "metoda", "benchark")))
         wiersze.append(k)
         print(f"  zmierzono: {etykieta}")
         return k
@@ -480,8 +488,9 @@ def cmd_narastanie(args):
         k["B_max_drzewa"] = model_drzewa(D, kfg.liczba_akcji)["B_max"]
         k["bajtow_na_krawedz"] = model_drzewa(D, kfg.liczba_akcji)["bajtow_na_krawedz"]
         if args.czas:
-            k.update(przepustowosc(env, B, kroki=args.kroki,
-                                   powtorzenia=args.powtorzenia))
+            k.update(przepustowosc(
+                env, B, kroki=args.kroki, powtorzenia=args.powtorzenia,
+                metoda=getattr(args, "metoda", "benchark")))
         wiersze.append(k)
         print(f"  zmierzono: {nazwa}")
 
@@ -548,8 +557,9 @@ def cmd_klasa1(args):
             "B_opt": model_rezydencji(D)["B_opt"],
         })
         if args.czas:
-            k.update(przepustowosc(env, B, kroki=args.kroki,
-                                   powtorzenia=args.powtorzenia))
+            k.update(przepustowosc(
+                env, B, kroki=args.kroki, powtorzenia=args.powtorzenia,
+                metoda=getattr(args, "metoda", "benchark")))
         if args.drzewo:
             d = koszt_drzewa(env, args.wsad_drzewa, symulacje=args.symulacje,
                              polityka=args.polityka)
@@ -622,8 +632,10 @@ def cmd_klasa2(args):
             krzywa = []
             for B in args.wsady:
                 try:
-                    p = przepustowosc(env, B, kroki=args.kroki,
-                                      powtorzenia=args.powtorzenia)
+                    p = przepustowosc(
+                        env, B, kroki=args.kroki,
+                        powtorzenia=args.powtorzenia,
+                        metoda=getattr(args, "metoda", "benchark"))
                 except Exception as e:       # brak pamieci itp.
                     krzywa.append({"wsad": B, "blad": str(e)[:120]})
                     continue
@@ -668,6 +680,73 @@ def cmd_klasa2(args):
 
 
 # ===========================================================================
+# 6b. KOSZT WZNAWIANIA EPIZODOW
+# ===========================================================================
+
+def cmd_wznawianie(args):
+    """Ile kosztuje wznawianie zakonczonych epizodow w petli wsadowej.
+
+    DLACZEGO TO JEST WYNIK, A NIE CIEKAWOSTKA
+    -----------------------------------------
+    W silniku galeziowym wznowienie epizodu kosztuje tylko dla tych srodowisk,
+    ktore sie zakonczyly. W sformulowaniu tensorowym nie ma takiej mozliwosci:
+    `vmap(env.init)` wykonuje sie dla WSZYSTKICH srodowisk w kazdym kroku,
+    a wybor `where` tylko decyduje, ktore stany podmienic.
+
+    Przy losowej polityce konczy sie okolo 139 epizodow na 204 800 krokow,
+    czyli jeden na pietnascie tysiecy. Placimy wiec pelny koszt wznowienia
+    2048 srodowisk, zeby wznowic dwa.
+
+    To ta sama teza, co przy mechanikach klasy III, tylko w innym miejscu
+    programu: bez rozgalezien placi sie za kazda mozliwosc, a nie za te,
+    ktora zachodzi. I tu akurat da sie to podac jednym czystym stosunkiem.
+    """
+    _naglowek("KOSZT WZNAWIANIA EPIZODOW")
+    wiersze = []
+    for B in args.wsady:
+        env = zbuduj(preset(args.preset))
+        try:
+            z = przepustowosc(env, B, kroki=args.kroki,
+                              powtorzenia=args.powtorzenia, metoda="benchark")
+            bez = przepustowosc(env, B, kroki=args.kroki,
+                                powtorzenia=args.powtorzenia, metoda="silnik")
+        except Exception as e:
+            print(f"  wsad {B}: {type(e).__name__}: {str(e)[:100]}")
+            continue
+        w = {
+            "wsad": B,
+            "ze_wznawianiem": z["krokow_na_sekunde"],
+            "bez_wznawiania": bez["krokow_na_sekunde"],
+            "narzut": bez["krokow_na_sekunde"] / z["krokow_na_sekunde"],
+            "odchylenie_pct": max(z["odchylenie_pct"], bez["odchylenie_pct"]),
+        }
+        wiersze.append(w)
+        print(f"  wsad {B:>5}: ze wznawianiem {w['ze_wznawianiem']:>10,.0f}, "
+              f"bez {w['bez_wznawiania']:>10,.0f}, "
+              f"narzut {w['narzut']:.2f}x")
+
+    if not wiersze:
+        return 1
+
+    print()
+    _tabela(wiersze, [("wsad", "wsad", ",d"),
+                      ("ze wznawianiem", "ze_wznawianiem", ",.0f"),
+                      ("bez wznawiania", "bez_wznawiania", ",.0f"),
+                      ("narzut", "narzut", ".2f"),
+                      ("odch. %", "odchylenie_pct", ".1f")])
+    sredni = sum(w["narzut"] for w in wiersze) / len(wiersze)
+    print(f"\n  Bezwarunkowe wznawianie kosztuje srednio {sredni:.2f} raza "
+          f"przepustowosci,")
+    print(f"  mimo ze konczy sie jeden epizod na kilkanascie tysiecy krokow.")
+    print(f"  Liczby z pracy (371 011 krokow/s) pochodza z kolumny "
+          f"'ze wznawianiem'.")
+
+    zapisz(_sciezka("wznawianie"), {"otoczenie": otoczenie(),
+                                    "wiersze": wiersze})
+    return 0
+
+
+# ===========================================================================
 # 7. DRZEWO PRZESZUKIWANIA
 # ===========================================================================
 
@@ -690,8 +769,10 @@ def cmd_drzewo(args):
         if "blad" in d:
             print(f"  {nazwa}: {d['blad']}")
             continue
-        p = przepustowosc(env, args.wsad, kroki=args.kroki,
-                          powtorzenia=args.powtorzenia)
+        p = przepustowosc(
+            env, args.wsad, kroki=args.kroki,
+            powtorzenia=args.powtorzenia,
+            metoda=getattr(args, "metoda", "benchark"))
         d["konfiguracja"] = f"{nazwa} ({kfg.klasy_aktywne})"
         d["D"] = rozmiar_stanu(env)
         d["samodzielnie_krokow_na_sekunde"] = p["krokow_na_sekunde"]
@@ -813,6 +894,12 @@ def main(argv=None):
                              "kompilatora)")
         sp.add_argument("--kroki", type=int, default=50)
         sp.add_argument("--powtorzenia", type=int, default=5)
+        sp.add_argument("--metoda", default="benchark",
+                        choices=list(METODY),
+                        help="benchark - jak w pracy (scan, wznawianie "
+                             "epizodow, czas najkrotszy); silnik - bez "
+                             "wznawiania, okolo 1,8x wyzej i NIEporownywalne "
+                             "z praca; python - petla pythonowa")
         sp.add_argument("--max-konfiguracji", type=int, default=None,
                         dest="max_konfiguracji",
                         help="mierz tylko tyle pierwszych konfiguracji; "
@@ -859,6 +946,14 @@ def main(argv=None):
                    help="jesli podane, mierzy przepustowosc dla tych wsadow "
                         "i szuka optimum")
     s.set_defaults(fn=cmd_klasa2)
+
+    s = wspolne(pod.add_parser("wznawianie",
+                               help="koszt bezwarunkowego wznawiania epizodow"),
+                2048)
+    s.add_argument("--preset", default="odniesienie")
+    s.add_argument("--wsady", nargs="+", type=int,
+                   default=[1024, 2048, 4096])
+    s.set_defaults(fn=cmd_wznawianie)
 
     s = pod.add_parser("stan", help="rozmiar stanu D i jego rozbicie")
     s.add_argument("--preset", default="III_II")
