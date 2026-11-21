@@ -104,6 +104,32 @@ TTY_ARG=()
 [[ -t 0 && -t 1 ]] && TTY_ARG=(-it)
 
 WSPOLNE=(--rm -v "$KATALOG:$MONTAZ" -w "$MONTAZ")
+
+# ===========================================================================
+# przekazanie zmiennych do kontenera
+# ===========================================================================
+# docker run NIE dziedziczy srodowiska - do kontenera trafia tylko to, co
+# jawnie wymienione przez -e. Bez tej listy ustawienia skryptow etapow nie
+# docieraly nigdzie, bo w kontenerze startowaly z wartosciami domyslnymi.
+#
+# Kosztowalo to jedna pomylke: tryb probny kolejki (--probnie) eksportowal
+# PROBNIE=1 na hoscie i byl po cichu ignorowany w kontenerze, wiec "przebieg
+# probny" liczyl sie w pelnym wymiarze - stad etap `szybkie` zajmujacy
+# trzydziesci dwie minuty zamiast pieciu. Wyniki byly prawidlowe, zepsuty byl
+# sam mechanizm skracania.
+#
+# PRZEKAZ="A B" dorzuca wlasne nazwy, gdy jednorazowo potrzeba czegos
+# spoza tej listy.
+ZMIENNE_ETAPOW=(
+  PROBNIE DETERMINISTYCZNIE WYNIKI
+  PRESET PRESETY KANALY WSADY KROKOW KROKI POWT POWT_BRAMA GIER SEKUNDY
+  WSADY_ODN WSADY_REZ WSAD_ABL WSAD SYM MAXR SYM_K1 WSAD_K1 SYMULACJE PROB
+  ${PRZEKAZ:-}
+)
+for _z in "${ZMIENNE_ETAPOW[@]}"; do
+  [[ -n "${!_z:-}" ]] && WSPOLNE+=(-e "$_z=${!_z}")
+done
+unset _z
 PROFILOWANIE=(
   --cap-add=SYS_ADMIN
   --cap-add=SYS_PTRACE
