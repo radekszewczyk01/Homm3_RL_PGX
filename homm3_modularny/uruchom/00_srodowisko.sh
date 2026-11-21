@@ -26,13 +26,34 @@ export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 export XLA_PYTHON_CLIENT_MEM_FRACTION=${XLA_PYTHON_CLIENT_MEM_FRACTION:-0.8}
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
-# Powtarzalnosc: bez tego kompilator moze wybrac inny plan przy kazdym
-# uruchomieniu i porownanie konfiguracji przestaje byc uczciwe.
+# NIE USTAWIAMY --xla_gpu_deterministic_ops I TO JEST SWIADOMA DECYZJA
+# -------------------------------------------------------------------
+# Byl tu kiedys ten przelacznik, dopisany w nadziei na powtarzalnosc. Okazal
+# sie bledem i kosztowal jeden przebieg serii:
 #
-# :- jest tu konieczne. Skrypty etapow chodza z `set -u`, wiec odwolanie do
-# nieustawionej zmiennej konczy je natychmiast - a wszystkie je wczesniej
-# sourcuja, czyli jedna taka literowka wywala cala serie.
-export XLA_FLAGS="${XLA_FLAGS:-} --xla_gpu_deterministic_ops=true"
+#   bez niego  364 975 krokow/s
+#   z nim      259 945 krokow/s     (stosunek 0,70, odchylenie 0,1 %)
+#
+# Wymusza on deterministyczne wersje operacji rozrzutu, czyli bez atomikow.
+# Nasz silnik stoi na rozrzutach - .at[].max() i .at[].set() sa w obserwacji,
+# w zajetosci heksow i w masce akcji - wiec placi sie za to jedna trzecia
+# przepustowosci. A powtarzalnosci to nie dawalo, bo plan kompilatora i tak
+# jest deterministyczny dla danego wejscia. Liczba 371 011 krokow/s z pracy
+# powstala BEZ tej flagi, wiec z nia nic sie nie zestawia.
+#
+# Jesli kiedys bedzie potrzebna (np. do porownania wynikow bit w bit miedzy
+# kartami), wlacza sie ja swiadomie i NIGDY przy pomiarze czasu:
+#   DETERMINISTYCZNIE=1 ./uruchom/02_czasowe.sh
+#
+# :- jest konieczne przy kazdym odwolaniu. Skrypty etapow chodza z `set -u`,
+# wiec odwolanie do nieustawionej zmiennej konczy je natychmiast - a wszystkie
+# je sourcuja, czyli jedna taka literowka wywala cala serie.
+if [[ "${DETERMINISTYCZNIE:-0}" == "1" ]]; then
+  export XLA_FLAGS="${XLA_FLAGS:-} --xla_gpu_deterministic_ops=true"
+  echo
+  echo "UWAGA: wlaczony tryb deterministyczny. Przepustowosc spada o okolo"
+  echo "jedna trzecia i liczby NIE daja sie zestawic z praca."
+fi
 
 export WYNIKI=${WYNIKI:-wyniki}
 mkdir -p "$WYNIKI"

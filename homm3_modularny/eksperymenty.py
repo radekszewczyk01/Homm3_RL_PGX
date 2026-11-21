@@ -1091,7 +1091,12 @@ def main(argv=None):
     KATALOG_WYNIKOW = args.wyniki
     os.makedirs(KATALOG_WYNIKOW, exist_ok=True)
 
-    print(f"zaplecze: {jax.default_backend()}, urzadzenia: {jax.devices()}")
+    # Na standardowe wyjscie BLEDOW, nie wyjscie zwykle. Podkomenda `stan
+    # --json` jest przekierowywana do pliku, a ta linia trafiala wtedy do
+    # niego jako pierwsza i psula JSON - przez co skrypt zbierajacy liczniki
+    # wywracal sie po czterdziestu siedmiu minutach pomiarow, na samym koncu.
+    print(f"zaplecze: {jax.default_backend()}, urzadzenia: {jax.devices()}",
+          file=sys.stderr)
     return args.fn(args)
 
 

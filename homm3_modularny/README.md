@@ -228,6 +228,15 @@ Pomyłka tu jest tania i trudna do wyłapania: pierwsza wersja tej warstwy
 mierzyła bez wznawiania i dawała 665 tysięcy kroków/s zamiast 371 tysięcy,
 co wyglądało jak 1,79-krotne przyspieszenie sprzętu.
 
+**Nie włączaj `--xla_gpu_deterministic_ops` przy pomiarze czasu.** Wymusza
+deterministyczne wersje operacji rozrzutu, a silnik stoi na rozrzutach —
+`.at[].max()` i `.at[].set()` są w obserwacji, w zajętości heksów i w masce
+akcji. Zmierzone: 364 975 kroków/s bez flagi wobec 259 945 z nią, przy
+odchyleniu 0,1 procenta. Powtarzalności to nie daje, bo plan kompilatora i tak
+jest deterministyczny dla danego wejścia. Jeśli kiedyś będzie potrzebna do
+porównań bit w bit, włącza się ją świadomie przez `DETERMINISTYCZNIE=1`
+i skrypt wtedy ostrzega.
+
 Blokada na karcie zero została zdjęta, więc karta zero jest znowu punktem
 odniesienia — wszystkie liczby w pracy pochodzą z niej. **To nie znaczy, że
 sprawdzanie przestało być potrzebne.** Blokada wraca przy każdym

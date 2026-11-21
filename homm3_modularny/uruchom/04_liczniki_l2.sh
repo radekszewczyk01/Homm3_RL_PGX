@@ -60,6 +60,25 @@ python3 eksperymenty.py stan --preset "$PRESET" --kanaly $KANALY
 python3 eksperymenty.py stan --preset "$PRESET" --kanaly $KANALY --json \
     > "$WYNIKI/rozmiary_stanu.json"
 
+# Sprawdzamy TERAZ, a nie na koncu. Raz juz ten plik wyszedl uszkodzony
+# i dowiedzielismy sie o tym po czterdziestu siedmiu minutach zbierania
+# licznikow, przy rysowaniu wykresu. Sekunda tutaj zamiast godziny tam.
+python3 -c "
+import json, sys
+d = json.load(open('$WYNIKI/rozmiary_stanu.json'))
+assert isinstance(d, list) and d, 'puste'
+assert all('D' in w and 'kanalow_dodanych' in w for w in d), 'brak pol'
+print('  rozmiary stanu zapisane poprawnie: ' +
+      ', '.join(f\"k{w['kanalow_dodanych']}={w['D']}B\" for w in d))
+" || {
+  echo
+  echo "Plik $WYNIKI/rozmiary_stanu.json jest uszkodzony. Pierwsze linie:"
+  head -3 "$WYNIKI/rozmiary_stanu.json" | sed 's/^/  /'
+  echo
+  echo "Bez niego wykres i tak sie nie policzy, wiec nie zbieram licznikow."
+  exit 1
+}
+
 for K in $KANALY; do
   KAT="$WYNIKI/liczniki_k${K}"
   mkdir -p "$KAT"
