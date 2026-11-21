@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+wyniki/
+wyniki_*/
+rysunki/
+*.pdf
+data/*.npy
+.ipynb_checkpoints/

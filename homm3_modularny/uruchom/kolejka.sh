@@ -33,10 +33,12 @@ LOGI="$WYNIKI/logi"
 STAN="$WYNIKI/stan.tsv"
 KARTA=${KARTA:-0}
 PROBNIE=0
+BEZ_KARTY=0
 
 for a in "$@"; do
   case "$a" in
     --probnie) PROBNIE=1 ;;
+    --bez-karty) BEZ_KARTY=1 ;;
     --bez-tmuksa) BEZ_TMUKSA=1 ;;
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "nieznany argument: $a"; exit 1 ;;
@@ -73,12 +75,42 @@ if [[ -z "${W_TMUKSIE:-}" && -z "${BEZ_TMUKSA:-}" ]]; then
 fi
 
 # --- przygotowanie ------------------------------------------------------
+# Tryb bez karty pisze do OSOBNEGO katalogu. Nie z zamilowania do porzadku:
+# liczby z procesora wygladaja tak samo jak z karty i trafilyby do tych
+# samych plikow, z ktorych potem beda brane dane do artykulu. Raz pomylone
+# nie dadza sie odroznic.
+if [[ "$BEZ_KARTY" == "1" ]]; then
+  WYNIKI="${WYNIKI}_bez_karty"
+  LOGI="$WYNIKI/logi"
+  STAN="$WYNIKI/stan.tsv"
+fi
+
 mkdir -p "$LOGI"
+
+if [[ "$BEZ_KARTY" == "1" ]]; then
+  cat > "$WYNIKI/UWAGA.txt" <<'TRESC'
+Te wyniki pochodza z PROCESORA, nie z karty.
+
+WAZNE i przenosne (identyczne na karcie, bo wynikaja z definicji):
+  zgodnosc.json   rozmiar stanu D, |A|, kanaly, model pamieciowy drzewa,
+                  B_max, B_opt, niezmienniki na losowych partiach
+  pokrycie.json   ktore mechaniki faktycznie sie odpalaja
+
+BEZ WARTOSCI (zalezne od zaplecza, nie przenosic do artykulu):
+  ablacja3.json   flopy, bajty, liczba jader - procesor fuzjuje zupelnie
+  narastanie.json inaczej niz karta
+  klasa1.json     (kolumny D, |A|, B_max, B_opt sa przenosne, reszta nie)
+
+Po naprawie dockera powtorz wszystko do katalogu wyniki/ i stamtad bierz
+liczby. Ten katalog mozna wtedy usunac.
+TRESC
+fi
 : > "$STAN"
 START_SERII=$(date +%s)
 
 export KARTA WYNIKI
 [[ "$PROBNIE" == "1" ]] && export PROBNIE=1
+[[ "$BEZ_KARTY" == "1" ]] && export BEZ_KARTY=1
 
 # Nadpisywalne, zeby dalo sie przetestowac kolejke bez dockera
 # (W_DOCKERZE=env ./uruchom/kolejka.sh --probnie uruchomi etapy wprost).
@@ -134,30 +166,67 @@ etap() {     # nazwa krytycznosc komenda...
 }
 
 # --- seria --------------------------------------------------------------
+GIER=$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 30 )
+KROKI=$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 50 )
+POWT=$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 8 )
+SEK=$( [[ "$PROBNIE" == "1" ]] && echo 3 || echo 20 )
+
 echo "seria startuje $(date '+%Y-%m-%d %H:%M:%S')"
-echo "karta: $KARTA, wyniki: $WYNIKI, tryb: $( [[ "$PROBNIE" == "1" ]] && echo PROBNY || echo pelny )"
+echo "wyniki: $WYNIKI, tryb: $( [[ "$PROBNIE" == "1" ]] && echo PROBNY || echo pelny )"
+if [[ "$BEZ_KARTY" == "1" ]]; then
+  echo "karta: BRAK - tryb bez karty"
+else
+  echo "karta: $KARTA"
+fi
 
-# Petla po kartach musi zglosic blad, jesli ktorakolwiek nie przeszla -
-# inaczej 'echo' na koncu petli zawsze zwraca zero i etap wyglada na udany.
-etap zegar nieistotny \
-  env KARTA=all $W_DOCKERZE bash -c '
-    ZLE=0
-    for K in 0 1 2; do
-      python3 narzedzia/sprawdz_zegar.py --karta $K --sekundy '"$( [[ "$PROBNIE" == "1" ]] && echo 3 || echo 20 )"' || ZLE=1
-      echo
-    done
-    exit $ZLE'
+if [[ "$BEZ_KARTY" == "1" ]]; then
+  # TRYB BEZ KARTY
+  # Kontener bez przekazanej karty wstaje nawet wtedy, gdy spis bibliotek
+  # sterownika jest nieaktualny, bo wtedy zadne z tych bibliotek nie sa
+  # montowane. Da sie wiec domknac wszystko, co nie zalezy od sprzetu.
+  #
+  # Zostaja tylko dwa etapy, i to nie przez wygode: pozostale mierza czas
+  # albo liczniki karty, a tych bez karty nie ma skad wziac. Lepiej ich nie
+  # uruchamiac wcale niz zapisac bezwartosciowe liczby do tych samych plikow,
+  # z ktorych potem beda brane dane do artykulu.
+  echo
+  echo "### TRYB BEZ KARTY - tylko liczby niezalezne od sprzetu"
+  echo "### Wazne: rozmiar stanu D, |A|, model pamieciowy drzewa, niezmienniki,"
+  echo "###         semantyka mechanik, pokrycie mechanik."
+  echo "### Pomijane: zegar, przepustowosc, liczniki L2, koszt drzewa."
+  echo "### Z tego przebiegu NIE WOLNO brac zadnej liczby czasowej ani zadnej"
+  echo "### liczby z kompilatora - procesor fuzjuje inaczej niz karta."
 
-etap brama krytyczny \
-  $W_DOCKERZE python3 eksperymenty.py --wyniki "$WYNIKI" zgodnosc --czas \
-  --gier "$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 30 )" \
-  --kroki "$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 50 )" \
-  --powtorzenia "$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 8 )"
+  etap brama krytyczny \
+    $W_DOCKERZE python3 eksperymenty.py --wyniki "$WYNIKI" zgodnosc \
+    --gier "$GIER"
 
-etap szybkie nieistotny $W_DOCKERZE uruchom/01_szybkie.sh
-etap czasowe nieistotny $W_DOCKERZE uruchom/02_czasowe.sh
-etap liczniki nieistotny $W_DOCKERZE uruchom/04_liczniki_l2.sh
-etap drzewo nieistotny $W_DOCKERZE uruchom/03_drzewo.sh
+  etap szybkie nieistotny $W_DOCKERZE uruchom/01_szybkie.sh
+
+  for E in zegar czasowe liczniki drzewo; do
+    zapisz "$E" pominiety 0 "tryb bez karty"
+  done
+else
+  # Petla po kartach musi zglosic blad, jesli ktorakolwiek nie przeszla -
+  # inaczej 'echo' na koncu petli zawsze zwraca zero i etap wyglada na udany.
+  etap zegar nieistotny \
+    env KARTA=all $W_DOCKERZE bash -c '
+      ZLE=0
+      for K in 0 1 2; do
+        python3 narzedzia/sprawdz_zegar.py --karta $K --sekundy '"$SEK"' || ZLE=1
+        echo
+      done
+      exit $ZLE'
+
+  etap brama krytyczny \
+    $W_DOCKERZE python3 eksperymenty.py --wyniki "$WYNIKI" zgodnosc --czas \
+    --gier "$GIER" --kroki "$KROKI" --powtorzenia "$POWT"
+
+  etap szybkie nieistotny $W_DOCKERZE uruchom/01_szybkie.sh
+  etap czasowe nieistotny $W_DOCKERZE uruchom/02_czasowe.sh
+  etap liczniki nieistotny $W_DOCKERZE uruchom/04_liczniki_l2.sh
+  etap drzewo nieistotny $W_DOCKERZE uruchom/03_drzewo.sh
+fi
 
 # --- podsumowanie -------------------------------------------------------
 DT=$(( $(date +%s) - START_SERII ))

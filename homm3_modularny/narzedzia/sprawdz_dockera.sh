@@ -72,6 +72,7 @@ echo "--- proby uruchomienia (test: nvidia-smi -L w kontenerze)"
 echo
 
 ZWYCIEZCA=""
+ZWYCIEZCA_JAX=-1      # -1 nie sprawdzano, 0 nie dziala, 1 dziala
 
 proba() {   # opis, komenda...
   local opis="$1"; shift
@@ -122,6 +123,63 @@ proba "device nvidia.com/gpu=0 (CDI)" \
 proba "gpus device=0, BEZ caps (tak jak bylo)" \
   "${D[@]}" --gpus device=0 --entrypoint nvidia-smi "$OBRAZ" -L
 
+# --- wstrzykniecie sterownika recznie, z pominieciem srodowiska NVIDII ---
+# Ta droga nie czyta specyfikacji urzadzen wcale, wiec jej nieaktualnosc
+# nic nie szkodzi. Montujemy tylko biblioteki potrzebne do obliczen - zadnej
+# grafiki, czyli nie dotykamy tego, co jest zepsute.
+echo
+echo "--- wstrzykniecie sterownika recznie (pomija srodowisko NVIDII)"
+RECZNE=()
+for W in /dev/nvidiactl /dev/nvidia-uvm /dev/nvidia-uvm-tools /dev/nvidia0; do
+  [[ -e "$W" ]] && RECZNE+=(--device "$W")
+done
+BRAK_RECZNE=()
+for PARA in "libcuda.so.1:libcuda.so.[0-9]*" \
+            "libnvidia-ml.so.1:libnvidia-ml.so.[0-9]*" \
+            "libnvidia-ptxjitcompiler.so.1:libnvidia-ptxjitcompiler.so.[0-9]*" \
+            "libnvidia-nvvm.so.4:libnvidia-nvvm.so.[0-9]*"; do
+  NAZWA="${PARA%%:*}"; WZOR="${PARA#*:}"
+  PLIK=$(compgen -G "/usr/lib/x86_64-linux-gnu/$WZOR" 2>/dev/null \
+         | sort -V | tail -1 || true)
+  if [[ -n "$PLIK" && -f "$PLIK" ]]; then
+    RECZNE+=(-v "$PLIK:/usr/lib/x86_64-linux-gnu/$NAZWA:ro")
+    echo "    znalazlem  $NAZWA  ->  $(basename "$PLIK")"
+  else
+    BRAK_RECZNE+=("$NAZWA")
+    echo "    BRAK       $NAZWA  (wzorzec $WZOR)"
+  fi
+done
+[[ -x /usr/bin/nvidia-smi ]] \
+  && RECZNE+=(-v /usr/bin/nvidia-smi:/usr/bin/nvidia-smi:ro)
+if [[ ! -e /dev/nvidia-uvm ]]; then
+  echo "    /dev/nvidia-uvm nie istnieje - probuje nvidia-modprobe -u -c 0"
+  command -v nvidia-modprobe >/dev/null \
+    && { nvidia-modprobe -u -c 0 >/dev/null 2>&1 \
+         && echo "    utworzony" || echo "    nie udalo sie"; } \
+    || echo "    brak nvidia-modprobe"
+  [[ -e /dev/nvidia-uvm ]] && RECZNE+=(--device /dev/nvidia-uvm)
+fi
+echo
+if ((${#BRAK_RECZNE[@]})); then
+  echo " nie probuje - bez tych bibliotek nie ma sensu"
+else
+  proba "recznie: --device + biblioteki obliczeniowe" \
+    "${D[@]}" "${RECZNE[@]}" --entrypoint nvidia-smi "$OBRAZ" -L
+  # samo nvidia-smi to nie dowod, ze policzy - sprawdzamy jeszcze CUDA
+  printf ' %-50s ' "recznie: czy JAX widzi karte"
+  if WYJ=$("${D[@]}" "${RECZNE[@]}" \
+           -e LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64 \
+           "$OBRAZ" python3 -c "import jax; print(jax.devices())" 2>&1); then
+    echo "DZIALA"
+    echo "     $(tail -1 <<<"$WYJ")"
+    ZWYCIEZCA_JAX=1
+  else
+    echo "nie"
+    echo "     $(tail -2 <<<"$WYJ" | tr '\n' ' ' | cut -c1-200)"
+    ZWYCIEZCA_JAX=0
+  fi
+fi
+
 if [[ "$OBRAZ" != "$STARY" ]]; then
   echo
   echo "--- ten sam test na starym obrazie $STARY"
@@ -155,28 +213,56 @@ if [[ -n "$ZWYCIEZCA" ]]; then
       echo " Uruchamiaj z wszystkimi kartami i wybieraj zmienna srodowiskowa:"
       echo "     KARTA=all CUDA_VISIBLE_DEVICES=0 ./uruchom/w_dockerze.sh ..."
       ;;
+    *"recznie"*)
+      echo " Droga normalna nie dziala, ale wstrzykniecie recznie dziala."
+      echo " uruchom/w_dockerze.sh przechodzi na nia SAM, gdy --gpus padnie"
+      echo " na montowaniu bibliotek - czyli nic nie musisz robic. Wymuszenie"
+      echo " bez komunikatu za kazdym razem:  BEZ_CDI=1"
+      echo
+      echo " Pomiary z tej drogi sa wazne: ten sam sprzet, ten sam sterownik,"
+      echo " te same biblioteki. Inny jest tylko sposob, w jaki staja sie"
+      echo " widoczne w kontenerze."
+      ;;
     *"runtime=nvidia"*|*"CDI"*)
       echo " Trzeba zmienic sposob przekazywania kart w"
       echo " uruchom/w_dockerze.sh. Przeslij mi ten wydruk, dopisze."
       ;;
   esac
+  if [[ "$ZWYCIEZCA_JAX" == "0" ]]; then
+    echo
+    echo " ALE UWAGA: nvidia-smi dziala, a JAX karty NIE WIDZI. Czyli samo"
+    echo " uruchomienie kontenera to jeszcze nie wszystko - brakuje czegos"
+    echo " po stronie CUDA. Przeslij mi wydruk z linii 'recznie: czy JAX"
+    echo " widzi karte', bo tam jest powiedziane, czego."
+  fi
+  echo
+  echo " Host nadal wymaga naprawy przez administratora - obejscie nie"
+  echo " zastepuje naprawy:"
+  echo "   sudo nvidia-ctk cdi generate --output=/var/run/cdi/nvidia.yaml"
 else
   echo " NIC NIE DZIALA - problem jest po stronie hosta, nie obrazu."
   echo
-  echo " Do poproszenia promotora (wymaga roota, kazde z osobna moze"
-  echo " wystarczyc):"
+  echo " Do poproszenia administratora (wymaga roota). Nadpisz ISTNIEJACY"
+  echo " plik specyfikacji, nie zakladaj drugiego w innym katalogu - dwie"
+  echo " specyfikacje tego samego dostawcy bija sie o nazwy urzadzen:"
+  echo
+  echo "   sudo nvidia-ctk cdi generate --output=/var/run/cdi/nvidia.yaml"
+  echo "        przegenerowuje spis urzadzen na nowo"
   echo
   echo "   sudo ldconfig"
-  echo "        odswieza spis bibliotek; naprawia przypadek, w ktorym spis"
-  echo "        wymienia plik usuniety przy aktualizacji sterownika"
-  echo
-  echo "   sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml"
-  echo "        przegenerowuje specyfikacje urzadzen na nowo"
+  echo "        odswieza spis bibliotek; zrob to PRZED przegenerowaniem,"
+  echo "        jesli spis urzadzen po przegenerowaniu nadal ma stara wersje"
   echo
   echo "   sudo apt-get install --reinstall libnvidia-egl-wayland1"
   echo "        przywraca sama brakujaca biblioteke"
   echo
-  echo " Tymczasem mozna policzyc to, co nie potrzebuje karty wcale:"
-  echo "   nic z tego repozytorium, bo JAX jest tylko w obrazie."
+  echo " Tymczasem da sie policzyc to, co od sprzetu nie zalezy - rozmiar"
+  echo " stanu, przestrzen akcji, model pamieciowy drzewa, niezmienniki,"
+  echo " semantyke mechanik i pokrycie:"
+  echo
+  echo "   ./uruchom/kolejka.sh --bez-karty"
+  echo
+  echo " Kontener bez przekazanej karty wstaje normalnie, bo wtedy zadne"
+  echo " z tych bibliotek nie sa montowane."
 fi
 echo "=============================================================="

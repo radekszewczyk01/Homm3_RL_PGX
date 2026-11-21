@@ -396,6 +396,62 @@ Pojedyncze etapy nadal idą osobno, jeśli trzeba coś powtórzyć:
 PROBNIE=1 ./uruchom/w_dockerze.sh uruchom/04_liczniki_l2.sh
 ```
 
+### Gdy `--gpus` nie działa
+
+Na tym serwerze spis urządzeń, przez który docker przekazuje karty, wskazuje
+na `libnvidia-egl-wayland.so.1.1.21`, a na hoście leży `1.1.23` — więc żaden
+kontener z przekazaną kartą nie wstaje. Naprawa wymaga roota:
+
+```bash
+sudo nvidia-ctk cdi generate --output=/var/run/cdi/nvidia.yaml
+```
+
+Dopóki tego nie ma, `w_dockerze.sh` **sam** przechodzi na drugą drogę: pomija
+środowisko uruchomieniowe NVIDII, podaje węzły urządzeń przez `--device`
+i montuje tylko te biblioteki sterownika, które są potrzebne do obliczeń —
+`libcuda`, `libnvidia-ml`, `libnvidia-ptxjitcompiler`, `libnvidia-nvvm`.
+Biblioteki graficzne, czyli te zepsute, nie są w ogóle dotykane, bo do
+liczenia nie służą. Nie potrzeba do tego roota: węzły `/dev/nvidia*` są
+czytelne dla wszystkich, a biblioteki montujemy tylko do odczytu.
+
+**To nie zmienia tego, co mierzymy.** Ten sam sprzęt, ten sam sterownik, te
+same biblioteki — inny jest tylko sposób, w jaki stają się widoczne
+w kontenerze.
+
+```bash
+BEZ_CDI=1 ./uruchom/w_dockerze.sh ...   # wymuś tę drogę, bez komunikatu
+BEZ_CDI=0 ./uruchom/w_dockerze.sh ...   # zabroń jej, tylko --gpus
+```
+
+Przejście na nią jest zgłaszane głośno przy każdym uruchomieniu i celowo:
+trzeba wiedzieć, że maszyna jest w stanie nienaprawionym. Jeśli `/dev/nvidia-uvm`
+nie istnieje, skrypt próbuje go utworzyć przez `nvidia-modprobe -u -c 0` —
+to polecenie ma ustawiony bit setuid, więc działa bez roota.
+
+### Gdy karta jest niedostępna w ogóle
+
+Kontener bez przekazanej karty wstaje nawet wtedy, gdy spis bibliotek
+sterownika jest nieaktualny — bo wtedy żadna z nich nie jest montowana. Da się
+więc domknąć wszystko, co nie zależy od sprzętu:
+
+```bash
+./uruchom/kolejka.sh --bez-karty
+BEZ_KARTY=1 ./uruchom/w_dockerze.sh uruchom/01_szybkie.sh
+```
+
+**Przenosi się**: rozmiar stanu *D*, przestrzeń akcji, liczba kanałów, model
+pamięciowy drzewa, *B*<sub>max</sub>, *B*<sub>opt</sub>, niezmienniki na
+losowych partiach, semantyka mechanik, pokrycie mechanik. Te liczby wynikają
+z definicji, nie z pomiaru, więc na karcie wyjdą identyczne.
+
+**Nie przenosi się**: cokolwiek czasowego oraz liczby z kompilatora (flopy,
+bajty, liczba jąder) — procesor fuzjuje zupełnie inaczej niż karta.
+
+Dlatego ten tryb pisze do osobnego katalogu `wyniki_bez_karty/` i zostawia
+tam plik `UWAGA.txt` z rozbiciem na jedno i drugie. Nie z zamiłowania do
+porządku: liczby z procesora wyglądają tak samo jak z karty i raz pomylone
+nie dadzą się już odróżnić.
+
 Każdy skrypt zapisuje surowy wynik do `wyniki/*.json` razem z opisem otoczenia
 (karta, sterownik, zegary, wersje, zmienne środowiskowe). Bez tego opisu wyniku
 czasowego nie da się potem obronić.

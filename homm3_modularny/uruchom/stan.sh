@@ -8,6 +8,14 @@ cd "$(dirname "$0")/.."
 
 SESJA=${SESJA:-pomiary}
 WYNIKI=${WYNIKI:-wyniki}
+
+# Tryb bez karty pisze do osobnego katalogu; jesli zwyklego nie ma, a tamten
+# jest, pokazujemy tamten - zeby nie trzeba bylo pamietac o zmiennej.
+if [[ ! -f "$WYNIKI/stan.tsv" && -f "${WYNIKI}_bez_karty/stan.tsv" ]]; then
+  WYNIKI="${WYNIKI}_bez_karty"
+  echo "(pokazuje $WYNIKI - seria szla w trybie bez karty)"
+fi
+
 STAN="$WYNIKI/stan.tsv"
 LOGI="$WYNIKI/logi"
 
