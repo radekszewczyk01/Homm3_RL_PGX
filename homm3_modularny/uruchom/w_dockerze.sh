@@ -63,8 +63,31 @@ BEZ_CDI=${BEZ_CDI:-auto}
 
 # Literowka w sciezce montazu konczy sie tak, ze docker po cichu zaklada
 # pusty katalog i pomiar leci na nieaktualnym kodzie. Dlatego sprawdzamy.
-[[ -d "$KATALOG/homm3" ]] || {
-  echo "W $KATALOG nie ma katalogu homm3/. Zla sciezka?"; exit 1; }
+#
+# KATALOG moze byc albo samym homm3_modularny, albo korzeniem repozytorium -
+# to drugie jest potrzebne, zeby dalo sie uruchomic stary src/benchark.py
+# do porownania, bo lezy piętro wyzej.
+[[ -d "$KATALOG/homm3" || -d "$KATALOG/homm3_modularny/homm3" || -d "$KATALOG/src" ]] || {
+  echo "W $KATALOG nie ma ani homm3/, ani homm3_modularny/homm3/, ani src/."
+  echo "Zla sciezka? Przyklady:"
+  echo "  KATALOG=\$HOME/Magisterka/Homm3_RL_PGX        # cale repozytorium"
+  echo "  KATALOG=\$HOME/Magisterka/Homm3_RL_PGX/homm3_modularny"
+  exit 1; }
+
+# Sciezka do punktu wejscia liczona WZGLEDEM montazu, zeby dzialala niezaleznie
+# od tego, czy montujemy homm3_modularny, czy caly korzen repozytorium.
+MOJ_KATALOG=$(cd "$(dirname "$0")" && pwd)
+if [[ "$MOJ_KATALOG" == "$KATALOG"/* ]]; then
+  WZGLEDNY="${MOJ_KATALOG#"$KATALOG"/}"
+elif [[ "$MOJ_KATALOG" == "$KATALOG" ]]; then
+  WZGLEDNY="."
+else
+  echo "Skrypt lezy w $MOJ_KATALOG, a montujemy $KATALOG - nie zawiera go."
+  echo "Ustaw KATALOG tak, zeby obejmowal ten skrypt."
+  exit 1
+fi
+WRAPPER_HOST="$MOJ_KATALOG/_wstrzyknij.sh"
+WRAPPER_KONTENER="$MONTAZ/$WZGLEDNY/_wstrzyknij.sh"
 
 docker image inspect "$OBRAZ" >/dev/null 2>&1 || {
   echo "Nie ma obrazu $OBRAZ. Zbuduj go:"
@@ -187,12 +210,11 @@ zbuduj_argumenty_recznie() {
   # procesor, a pomiar wyglada na udany. Zdarzylo sie.
   # Punkt wejscia musi byc wykonywalny, bo montujemy go z hosta i obowiazuja
   # uprawnienia hosta. Po rozpakowaniu archiwum czasem nie sa.
-  local wrapper="$KATALOG/uruchom/_wstrzyknij.sh"
-  if [[ ! -x "$wrapper" ]]; then
-    chmod +x "$wrapper" 2>/dev/null \
-      || { BRAKUJACE+=("$wrapper (nie jest wykonywalny: chmod +x)"); }
+  if [[ ! -x "$WRAPPER_HOST" ]]; then
+    chmod +x "$WRAPPER_HOST" 2>/dev/null \
+      || { BRAKUJACE+=("$WRAPPER_HOST (nie jest wykonywalny: chmod +x)"); }
   fi
-  ARGUMENTY_RECZNE+=(--entrypoint "$MONTAZ/uruchom/_wstrzyknij.sh")
+  ARGUMENTY_RECZNE+=(--entrypoint "$WRAPPER_KONTENER")
   [[ "$KARTA" != "all" ]] && ARGUMENTY_RECZNE+=(-e CUDA_VISIBLE_DEVICES=0)
   return 0
 }
