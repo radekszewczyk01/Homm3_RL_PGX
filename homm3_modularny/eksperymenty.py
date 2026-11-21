@@ -30,7 +30,7 @@ from homm3 import (MECHANIKI_II, MECHANIKI_III, MECHANIKI_IV, Konfiguracja,
                    check_invariants, preset, raport_hakow, zbuduj)
 from homm3.konfiguracja import CZARY_OBRAZENIOWE
 from homm3.pomiar import (METODY, analiza_kosztu, koszt_drzewa,
-                          losuj_legalne,
+                          losuj_legalne, statystyki_akcji,
                           model_drzewa, model_rezydencji, otoczenie,
                           przepustowosc, rozmiar_stanu, zapisz)
 from homm3.rdzen import MAX_AKCJI_RDZENIA, MAX_UNITS
@@ -680,6 +680,94 @@ def cmd_klasa2(args):
 
 
 # ===========================================================================
+# 6a. ROZKLAD LICZBY AKCJI DOPUSZCZALNYCH
+# ===========================================================================
+
+# Tabela z pracy (rozdzial 6, tab:legal_pomiar), N = 4,1e6 obserwacji.
+# Liczba 69 cytowana w rozdziale 7 i 8 to SREDNIA DLA POLITYKI ZACHLANNEJ.
+Z_PRACY_AKCJE = {
+    "losowy":     dict(srednia=76.5, odchylenie=32.9, mediana=69,
+                       p05=35, p95=145, wypelnienie_pct=5.8),
+    "zachlanny":  dict(srednia=69.2, odchylenie=31.4, mediana=62,
+                       p05=31, p95=136, wypelnienie_pct=5.2),
+}
+
+
+def cmd_akcje(args):
+    """Ile akcji jest faktycznie dopuszczalnych i ile bufora drzewa stoi puste.
+
+    PO CO TO JEST OSOBNO
+    --------------------
+    Na tej jednej liczbie stoi caly wniosek o drzewie: skoro dopuszczalnych
+    jest okolo 69 akcji z 1322, to ponad 94 procent bufora krawedziowego
+    nigdy nie zostaje uzyte. Liczba zalezy jednak od POLITYKI - przy losowej
+    wychodzi 76, przy zachlannej 69 - i bez podania ktorej, w artykule nie
+    da sie jej obronic.
+
+    Dla konfiguracji z czarami klasy I ten sam pomiar sprawdza przewidywanie
+    z pracy: przy osmiu czarach |A| = 2642, a srednia liczba akcji
+    dopuszczalnych miala wzrosnac do okolo 369, czyli 5,4 raza.
+    """
+    _naglowek("ROZKLAD LICZBY AKCJI DOPUSZCZALNYCH")
+    wiersze = []
+    for nazwa in args.presety:
+        kfg = preset(nazwa)
+        env = zbuduj(kfg)
+        for tryb in args.tryby:
+            s = statystyki_akcji(env, B=args.wsad, kroki=args.kroki,
+                                 tryb=tryb)
+            s["konfiguracja"] = f"{nazwa} ({tryb})"
+            odn = Z_PRACY_AKCJE.get(tryb) if nazwa == "odniesienie" else None
+            if odn:
+                s["z_pracy"] = odn["srednia"]
+                s["odchylka_pct"] = 100 * (s["srednia"] / odn["srednia"] - 1)
+            wiersze.append(s)
+            print(f"  zmierzono: {nazwa}, tryb {tryb}")
+
+    print()
+    _tabela(wiersze, [("konfiguracja", "konfiguracja", "<28"),
+                      ("|A|", "A", ",d"),
+                      ("srednia", "srednia", ".2f"),
+                      ("odch.", "odchylenie", ".2f"),
+                      ("p05", "p05", "d"), ("med", "mediana", "d"),
+                      ("p95", "p95", "d"), ("max", "max", "d"),
+                      ("% z |A|", "wypelnienie_pct", ".2f"),
+                      ("pusty bufor %", "pusty_bufor_pct", ".2f"),
+                      ("dlug. epizodu", "dlugosc_epizodu", ".1f")])
+
+    porownania = [w for w in wiersze if "z_pracy" in w]
+    if porownania:
+        print("\n  zestawienie z tabela z pracy (rozdzial 6):")
+        for w in porownania:
+            print(f"    {w['tryb']:<10} zmierzone {w['srednia']:6.2f}, "
+                  f"z pracy {w['z_pracy']:6.2f}, "
+                  f"roznica {w['odchylka_pct']:+.1f}%")
+        print("    Kilka procent roznicy jest oczekiwane: praca liczyla to")
+        print("    z 4,1 mln obserwacji, a estymata zalezy od horyzontu")
+        print(f"    pomiaru (tu {args.kroki} krokow).")
+
+    # przewidywanie z pracy dla klasy I
+    baza = next((w for w in wiersze
+                 if w["konfiguracja"].startswith("odniesienie")
+                 and w["tryb"] == "zachlanny"), None)
+    pelna = next((w for w in wiersze
+                  if w["konfiguracja"].startswith("wszystko")
+                  and w["tryb"] == "zachlanny"), None)
+    if baza and pelna:
+        print(f"\n  przewidywanie z pracy dla osmiu czarow: |A| 1322 -> 2642,"
+              f" akcje dopuszczalne 69 -> okolo 369 (x5,4)")
+        print(f"  zmierzone: |A| {baza['A']} -> {pelna['A']}, "
+              f"akcje dopuszczalne {baza['srednia']:.1f} -> "
+              f"{pelna['srednia']:.1f} "
+              f"(x{pelna['srednia'] / baza['srednia']:.2f})")
+
+    zapisz(_sciezka("akcje"), {"otoczenie": otoczenie(),
+                               "z_pracy": Z_PRACY_AKCJE,
+                               "wiersze": wiersze})
+    return 0
+
+
+# ===========================================================================
 # 6b. KOSZT WZNAWIANIA EPIZODOW
 # ===========================================================================
 
@@ -946,6 +1034,15 @@ def main(argv=None):
                    help="jesli podane, mierzy przepustowosc dla tych wsadow "
                         "i szuka optimum")
     s.set_defaults(fn=cmd_klasa2)
+
+    s = wspolne(pod.add_parser("akcje",
+                               help="rozklad liczby akcji dopuszczalnych"),
+                2048)
+    s.add_argument("--presety", nargs="+",
+                   default=["odniesienie", "I_4", "wszystko"])
+    s.add_argument("--tryby", nargs="+", default=["zachlanny", "losowy"],
+                   choices=["zachlanny", "losowy"])
+    s.set_defaults(fn=cmd_akcje)
 
     s = wspolne(pod.add_parser("wznawianie",
                                help="koszt bezwarunkowego wznawiania epizodow"),

@@ -107,6 +107,114 @@ def analiza_kosztu(env, B: int, ziarno: int = 0) -> dict:
     }
 
 
+def _premia_zachlanna(kfg):
+    """Premia do logitow preferujaca ataki - jak w benchark.py.
+
+    Tryb zachlanny jest jedynym porownywalnym z silnikiem referencyjnym,
+    w ktorym przeciwnikiem jest StupidAI, i wlasnie z niego pochodzi liczba
+    69 akcji dopuszczalnych podawana w pracy. Przy polityce losowej wiekszosc
+    akcji dopuszczalnych to ruchy, bitwy praktycznie sie nie koncza, a srednia
+    wychodzi wyzsza.
+
+    Czary klasy I nie sa tu traktowane jako atak, dokladnie tak jak w pracy
+    traktowane byly akcje spoza planszy - inaczej liczby przestalyby sie
+    zestawiac.
+    """
+    from .rdzen import N_BOARD_ACTIONS, N_PLANES, PLANE_MOVE
+    idx = jnp.arange(kfg.liczba_akcji)
+    atak = (idx < N_BOARD_ACTIONS) & ((idx % N_PLANES) != PLANE_MOVE)
+    return jnp.where(atak, 8.0, 0.0)
+
+
+def statystyki_akcji(env, B: int = 2048, kroki: int = 100,
+                     tryb: str = "zachlanny", ziarno: int = 0) -> dict:
+    """Rozklad liczby akcji dopuszczalnych oraz dlugosc epizodu.
+
+    Odtwarza tabele z pracy (rozdzial 6). Histogram zbieramy dokladnie -
+    jeden licznik na kazda mozliwa liczbe akcji - wiec kwantyle sa scisle,
+    a nie przybliżone z probki.
+
+    UWAGA O HORYZONCIE: dlugosc epizodu liczona z liczby zakonczen w okienku
+    jest obciazona, bo okienko odcina epizody dlugie. Praca podaje to wprost:
+    dla polityki losowej horyzonty 200, 400 i 4000 krokow daly 1665, 608
+    i 380 krokow. Dla polityki zachlannej estymata jest stabilna juz przy
+    umiarkowanym okienku. Podajemy wiec dlugosc razem z uzytym horyzontem
+    i bez niego jej nie interpretujemy.
+    """
+    kfg = env.kfg
+    A = kfg.liczba_akcji
+    premia = (_premia_zachlanna(kfg) if tryb == "zachlanny"
+              else jnp.zeros(A, dtype=jnp.float32))
+
+    klucz = jax.random.PRNGKey(ziarno)
+    st = jax.jit(jax.vmap(env.init))(jax.random.split(klucz, B))
+
+    def jeden(carry, _):
+        stan, k, hist, zak = carry
+        k, k_akcja, k_krok, k_reset = jax.random.split(k, 4)
+        # statystyke zbieramy ZE STANU, W KTORYM AGENT PODEJMUJE DECYZJE,
+        # czyli przed wykonaniem kroku
+        ile = stan.legal_action_mask.sum(axis=-1)
+        hist = hist.at[ile].add(1)
+        logity = jnp.where(stan.legal_action_mask, premia, -1e9)
+        akcje = jax.random.categorical(k_akcja, logity, axis=-1)
+        stan = jax.vmap(env.step)(stan, akcje,
+                                  jax.random.split(k_krok, B))
+        gotowe = stan.terminated | stan.truncated
+        zak = zak + gotowe.sum()
+        swieze = jax.vmap(env.init)(jax.random.split(k_reset, B))
+        stan = jax.tree_util.tree_map(
+            lambda a, b: jnp.where(
+                gotowe.reshape((-1,) + (1,) * (a.ndim - 1)), b, a),
+            stan, swieze)
+        return (stan, k, hist, zak), None
+
+    @jax.jit
+    def przebieg(stan, k):
+        poczatek = (stan, k,
+                    jnp.zeros(A + 1, dtype=jnp.int32),
+                    jnp.int32(0))
+        (stan, k, hist, zak), _ = jax.lax.scan(jeden, poczatek, None,
+                                               length=kroki)
+        return hist, zak
+
+    hist, zakonczen = przebieg(st, jax.random.fold_in(klucz, 7))
+    hist = np.asarray(jax.block_until_ready(hist)).astype(np.int64)
+    zakonczen = int(zakonczen)
+
+    wartosci = np.arange(A + 1)
+    n = int(hist.sum())
+    srednia = float((wartosci * hist).sum() / n)
+    wariancja = float((hist * (wartosci - srednia) ** 2).sum() / n)
+    skum = np.cumsum(hist)
+
+    def kwantyl(p):
+        return int(wartosci[np.searchsorted(skum, p * n)])
+
+    niezerowe = wartosci[hist > 0]
+    obserwacji = B * kroki
+    return {
+        "tryb": tryb,
+        "wsad": B,
+        "kroki": kroki,
+        "obserwacji": obserwacji,
+        "A": A,
+        "srednia": srednia,
+        "odchylenie": float(np.sqrt(wariancja)),
+        "min": int(niezerowe.min()) if niezerowe.size else 0,
+        "p05": kwantyl(0.05),
+        "mediana": kwantyl(0.50),
+        "p95": kwantyl(0.95),
+        "max": int(niezerowe.max()) if niezerowe.size else 0,
+        "wypelnienie_pct": 100.0 * srednia / A,
+        "pusty_bufor_pct": 100.0 * (1.0 - srednia / A),
+        "zakonczen": zakonczen,
+        "dlugosc_epizodu": (obserwacji / zakonczen if zakonczen
+                            else float("inf")),
+        "horyzont_krokow": kroki,
+    }
+
+
 def losuj_legalne(st, klucz):
     """Losowa legalna akcja dla kazdego elementu wsadu."""
     return jax.random.categorical(
