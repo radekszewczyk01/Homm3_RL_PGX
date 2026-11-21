@@ -166,17 +166,55 @@ else
   proba "recznie: --device + biblioteki obliczeniowe" \
     "${D[@]}" "${RECZNE[@]}" --entrypoint nvidia-smi "$OBRAZ" -L
   # samo nvidia-smi to nie dowod, ze policzy - sprawdzamy jeszcze CUDA
+  # UWAGA: nie wystarczy sprawdzic kodu wyjscia. jax.devices() konczy sie
+  # sukcesem takze wtedy, gdy zwroci procesor - JAX przy braku ktorejkolwiek
+  # biblioteki CUDA wypisuje ostrzezenie i cicho przechodzi na procesor.
+  # Pierwsza wersja tego skryptu patrzyla tylko na kod wyjscia i meldowala
+  # sukces przy pelnym zjechaniu na procesor. Dlatego tu jest kod 3.
   printf ' %-50s ' "recznie: czy JAX widzi karte"
-  if WYJ=$("${D[@]}" "${RECZNE[@]}" \
-           -e LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64 \
-           "$OBRAZ" python3 -c "import jax; print(jax.devices())" 2>&1); then
+  set +e
+  WYJ=$("${D[@]}" "${RECZNE[@]}" \
+        --entrypoint "$PWD/uruchom/_wstrzyknij.sh" \
+        -v "$PWD:$PWD" \
+        "$OBRAZ" python3 -c '
+import sys, jax
+d = jax.devices()
+print(d)
+sys.exit(0 if any(getattr(x, "platform", "") in ("gpu", "cuda") for x in d)
+         else 3)' 2>&1)
+  KOD_JAX=$?
+  set -e
+  if ((KOD_JAX == 0)); then
     echo "DZIALA"
     echo "     $(tail -1 <<<"$WYJ")"
     ZWYCIEZCA_JAX=1
-  else
-    echo "nie"
-    echo "     $(tail -2 <<<"$WYJ" | tr '\n' ' ' | cut -c1-200)"
+  elif ((KOD_JAX == 3)); then
+    echo "NIE - kontener wstaje, ale JAX siedzi na procesorze"
+    sed 's/^/     /' <<<"$WYJ" | tail -8
     ZWYCIEZCA_JAX=0
+  else
+    echo "nie - kontener nie wstal"
+    sed 's/^/     /' <<<"$WYJ" | tail -4
+    ZWYCIEZCA_JAX=0
+  fi
+
+  if ((ZWYCIEZCA_JAX == 0)); then
+    echo
+    echo "--- gdzie leza biblioteki zestawu narzedziowego CUDA w obrazie"
+    "${D[@]}" "$OBRAZ" bash -c '
+      echo "  LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+      for L in cusparse cublas cusolver cufft cudnn cudart; do
+        P=$(ldconfig -p 2>/dev/null | grep -i "lib$L" | head -1)
+        if [ -n "$P" ]; then echo "  spis: $P"
+        else
+          F=$(find /usr /opt -name "lib$L*.so*" 2>/dev/null | head -1)
+          [ -n "$F" ] && echo "  NIE W SPISIE, plik: $F" \
+                      || echo "  BRAK CALKIEM: lib$L"
+        fi
+      done
+      echo "  pakiety pip:"
+      pip list 2>/dev/null | grep -iE "nvidia-|^jax" | sed "s/^/    /"
+    ' 2>&1 | head -30
   fi
 fi
 

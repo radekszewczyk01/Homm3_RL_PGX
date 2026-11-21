@@ -180,14 +180,39 @@ zbuduj_argumenty_recznie() {
   [[ -x /usr/bin/nvidia-smi ]] \
     && ARGUMENTY_RECZNE+=(-v /usr/bin/nvidia-smi:/usr/bin/nvidia-smi:ro)
 
-  # Sciezka poszukiwania: obraz ustawia /usr/local/nvidia/lib{,64}, a my
-  # wkladamy biblioteki tam, gdzie leza normalnie. Podajemy jedno i drugie,
-  # zeby nie liczyc na to, ze spis bibliotek w obrazie je zobaczy.
-  ARGUMENTY_RECZNE+=(
-    -e LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64
-  )
+  # Sciezka poszukiwania bibliotek i odswiezenie ich spisu robi punkt wejscia
+  # uruchamiany w kontenerze - patrz uruchom/_wstrzyknij.sh. NIE przekazujemy
+  # LD_LIBRARY_PATH zmienna dockera, bo to NADPISUJE wartosc z obrazu i wtyczka
+  # CUDA przestaje znajdowac libcusparse; JAX zjezdza wtedy po cichu na
+  # procesor, a pomiar wyglada na udany. Zdarzylo sie.
+  # Punkt wejscia musi byc wykonywalny, bo montujemy go z hosta i obowiazuja
+  # uprawnienia hosta. Po rozpakowaniu archiwum czasem nie sa.
+  local wrapper="$KATALOG/uruchom/_wstrzyknij.sh"
+  if [[ ! -x "$wrapper" ]]; then
+    chmod +x "$wrapper" 2>/dev/null \
+      || { BRAKUJACE+=("$wrapper (nie jest wykonywalny: chmod +x)"); }
+  fi
+  ARGUMENTY_RECZNE+=(--entrypoint "$MONTAZ/uruchom/_wstrzyknij.sh")
   [[ "$KARTA" != "all" ]] && ARGUMENTY_RECZNE+=(-e CUDA_VISIBLE_DEVICES=0)
   return 0
+}
+
+# Czy JAX w kontenerze faktycznie widzi karte. Samo wstanie kontenera NIE
+# WYSTARCZA: JAX przy braku ktorejkolwiek biblioteki CUDA wypisuje ostrzezenie
+# i przechodzi na procesor, konczac sie kodem zero. Mierzenie wtedy dalej
+# byloby najgorszym z mozliwych wynikow - liczby wygladaja normalnie i sa
+# nieprawdziwe. Dlatego sprawdzamy to osobno i twardo.
+SPRAWDZ_JAX='
+import sys
+import jax
+d = jax.devices()
+print(d)
+sys.exit(0 if any(getattr(x, "platform", "") in ("gpu", "cuda") for x in d)
+         else 3)'
+
+jax_widzi_karte() {
+  docker run "${WSPOLNE[@]}" "${PROFILOWANIE[@]}" "$@" "$OBRAZ" \
+    python3 -c "$SPRAWDZ_JAX" 2>&1
 }
 
 # ===========================================================================
@@ -218,25 +243,75 @@ else
   ARGUMENTY_GPUS=(--gpus "$GPU_ARG" -e NVIDIA_DRIVER_CAPABILITIES="$CAPS")
   [[ "$KARTA" != "all" ]] && ARGUMENTY_GPUS+=(-e CUDA_VISIBLE_DEVICES=0)
 
-  wstaje() {   # probuje uruchomic kontener z podanymi argumentami
-    docker run --entrypoint /bin/true "${WSPOLNE[@]}" "${PROFILOWANIE[@]}" \
-      "$@" "$OBRAZ" 2>&1 >/dev/null
+  # Zwraca 0 gdy JAX widzi karte, 3 gdy wstal ale jest na procesorze,
+  # cokolwiek innego gdy kontener nie wstal. Wynik w zmiennej WYJSCIE.
+  sprobuj() {
+    set +e
+    WYJSCIE=$(jax_widzi_karte "$@")
+    KOD=$?
+    set -e
+  }
+
+  # Wspolna obsluga przypadku, w ktorym kontener wstaje, ale JAX siedzi
+  # na procesorze. To jest pulapka, nie usterka drugiego rzedu: liczby wyjda
+  # i beda wygladac normalnie.
+  odmow_procesora() {   # wyjscie_z_jax
+    echo "================================================================"
+    echo " KONTENER WSTAJE, ALE JAX NIE WIDZI KARTY - przechodzi na procesor."
+    echo
+    echo " JAX powiedzial:"
+    sed 's/^/   /' <<<"$1" | tail -12
+    echo
+    echo " NIE URUCHAMIAM pomiarow w tym stanie. Liczby wyszly by normalne"
+    echo " i bylyby nieprawdziwe, a tego nie da sie potem rozpoznac."
+    echo
+    echo " Najczestsza przyczyna to brak ktorejs biblioteki zestawu"
+    echo " narzedziowego CUDA w obrazie (cuSPARSE, cuBLAS, cuDNN). Gdzie leza:"
+    echo
+    echo "   BEZ_KARTY=1 ./uruchom/w_dockerze.sh bash -c '"
+    echo "     ldconfig -p | grep -iE \"cusparse|cublas|cudnn\";"
+    echo "     echo LD_LIBRARY_PATH=\$LD_LIBRARY_PATH;"
+    echo "     pip list 2>/dev/null | grep -i nvidia'"
+    echo
+    echo " Jesli musisz policzyc to, co od sprzetu nie zalezy:"
+    echo "   ./uruchom/kolejka.sh --bez-karty"
+    echo "================================================================"
+    exit 1
   }
 
   if [[ "$BEZ_CDI" == "1" ]]; then
     zbuduj_argumenty_recznie
+    if ((${#BRAKUJACE[@]})); then
+      echo "Wstrzykniecie recznie wymuszone, ale brakuje:"
+      printf '  %s\n' "${BRAKUJACE[@]}"
+      exit 1
+    fi
+    if [[ "$BEZ_SPRAWDZENIA" != "1" ]]; then
+      sprobuj "${ARGUMENTY_RECZNE[@]}"
+      if ((KOD == 3)); then
+        odmow_procesora "$WYJSCIE"
+      elif ((KOD != 0)); then
+        echo "Kontener nie wstaje. Docker powiedzial tyle:"
+        sed 's/^/  /' <<<"$WYJSCIE" | tail -5
+        exit 1
+      fi
+    fi
     ARGUMENTY_KARTY=("${ARGUMENTY_RECZNE[@]}")
     OPIS_DROGI="karta $KARTA, sterownik wstrzykniety recznie (wymuszone)"
   elif [[ "$BEZ_SPRAWDZENIA" == "1" ]]; then
     ARGUMENTY_KARTY=("${ARGUMENTY_GPUS[@]}")
     OPIS_DROGI="karta $KARTA (--gpus $GPU_ARG), bez sprawdzenia"
   else
-    # Dwie sekundy teraz oszczedzaja zgadywania potem: blad srodowiska
+    # Kilka sekund teraz oszczedza zgadywania potem: blad srodowiska
     # uruchomieniowego wyglada identycznie jak blad w kodzie, a nim nie jest.
-    if BLAD=$(wstaje "${ARGUMENTY_GPUS[@]}"); then
+    sprobuj "${ARGUMENTY_GPUS[@]}"
+    if ((KOD == 0)); then
       ARGUMENTY_KARTY=("${ARGUMENTY_GPUS[@]}")
       OPIS_DROGI="karta $KARTA (--gpus $GPU_ARG), mozliwosci sterownika: $CAPS"
+    elif ((KOD == 3)); then
+      odmow_procesora "$WYJSCIE"
     else
+      BLAD="$WYJSCIE"
       MONTAZ_PADL=0
       grep -q "failed to fulfil mount request" <<<"$BLAD" && MONTAZ_PADL=1
 
@@ -264,7 +339,15 @@ else
         echo "Pelna diagnostyka: ./narzedzia/sprawdz_dockera.sh"
         exit 1
       fi
-      if BLAD2=$(wstaje "${ARGUMENTY_RECZNE[@]}"); then
+      # Tu sprawdzamy od razu JAX-em, a nie samym /bin/true. Pierwsza wersja
+      # tego obejscia sprawdzala tylko, czy kontener wstaje - wstawal, JAX
+      # zjechal na procesor i poszla cala seria pomiarow bezwartosciowych.
+      sprobuj "${ARGUMENTY_RECZNE[@]}"
+      BLAD2="$WYJSCIE"
+      if ((KOD == 3)); then
+        odmow_procesora "$BLAD2"
+      fi
+      if ((KOD == 0)); then
         ARGUMENTY_KARTY=("${ARGUMENTY_RECZNE[@]}")
         OPIS_DROGI="karta $KARTA, sterownik wstrzykniety recznie (zapas)"
         echo "================================================================"

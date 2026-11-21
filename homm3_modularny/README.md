@@ -428,6 +428,19 @@ trzeba wiedzieć, że maszyna jest w stanie nienaprawionym. Jeśli `/dev/nvidia-
 nie istnieje, skrypt próbuje go utworzyć przez `nvidia-modprobe -u -c 0` —
 to polecenie ma ustawiony bit setuid, więc działa bez roota.
 
+Ścieżkę poszukiwania bibliotek i odświeżenie ich spisu ustawia
+`uruchom/_wstrzyknij.sh`, uruchamiany jako punkt wejścia **wewnątrz**
+kontenera. Musi to być osobny plik, a nie zmienna `-e LD_LIBRARY_PATH`,
+bo zmienna **nadpisuje** wartość z obrazu, a wtedy wtyczka CUDA przestaje
+znajdować `libcusparse` i JAX po cichu przechodzi na procesor.
+
+**Każde uruchomienie sprawdza, czy JAX faktycznie widzi kartę**, i odmawia
+startu, jeśli nie. Nie wystarczy sprawdzić, czy kontener wstaje, ani czy
+`jax.devices()` kończy się sukcesem — kończy się nim także wtedy, gdy zwróci
+procesor. Mierzenie wtedy dalej byłoby najgorszym możliwym wynikiem: liczby
+wychodzą normalne i są nieprawdziwe, a potem nie da się tego rozpoznać.
+Sprawdzenie kosztuje kilka sekund; `BEZ_SPRAWDZENIA=1` je pomija.
+
 ### Gdy karta jest niedostępna w ogóle
 
 Kontener bez przekazanej karty wstaje nawet wtedy, gdy spis bibliotek
