@@ -130,6 +130,14 @@ def tabela(naglowki, wiersze, wyrownanie, podpis, etykieta, zrodlo, dane,
     return "\n".join(cz)
 
 
+def kps(w):
+    """Przepustowosc pod oboma nazwami, jakie wystepuja w plikach wynikow."""
+    for k in ("krokow_na_sekunde", "krokow_na_s"):
+        if k in w:
+            return w[k]
+    return None
+
+
 def wzgledem(wartosc, odniesienie):
     """Zmiana w procentach wobec konfiguracji pelnej, ze znakiem."""
     if not odniesienie:
@@ -155,7 +163,7 @@ def tab_ablacja3(katalog):
 
     pelna = wiersze_we[0]
     B = pelna.get("wsad", "?")
-    ma_czas = "krokow_na_s" in pelna
+    ma_czas = kps(pelna) is not None
 
     naglowki = [r"configuration", r"$\Delta$ flops [\%]",
                 r"$\Delta$ bytes [\%]", r"kernels", r"buffers"]
@@ -174,7 +182,7 @@ def tab_ablacja3(katalog):
                    f"\\textbf{{{w['jadra']}}}",
                    f"\\textbf{{{lb(w.get('bajty_tymczasowe', 0))}}}"]
             if ma_czas:
-                kom.append(f"\\textbf{{{lb(w['krokow_na_s'])}}}")
+                kom.append(f"\\textbf{{{lb(kps(w))}}}")
             wiersze.append(kom)
             continue
         kom = [etyk,
@@ -184,7 +192,7 @@ def tab_ablacja3(katalog):
                wzgledem(w.get("bajty_tymczasowe", 0),
                         pelna.get("bajty_tymczasowe", 0))]
         if ma_czas:
-            kom.append(wzgledem(w["krokow_na_s"], pelna["krokow_na_s"]))
+            kom.append(wzgledem(kps(w), kps(pelna)))
         wiersze.append(kom)
 
     uwaga = (f"First row: absolute values for the full configuration at "
@@ -212,7 +220,7 @@ def tab_narastanie(katalog):
         return None, "narastanie.json jest pusty"
 
     baza = wiersze_we[0]
-    ma_czas = "krokow_na_s" in baza
+    ma_czas = kps(baza) is not None
     naglowki = [r"configuration", r"$\nact$", r"$\nstate$ [B]",
                 r"flops/step", r"bytes/step", r"kernels"]
     wyr = "lrrrrr"
@@ -227,7 +235,7 @@ def tab_narastanie(katalog):
                lb(w["flopy_na_krok"]), lb(w["bajty_na_krok"]),
                str(w["jadra"])]
         if ma_czas:
-            kom.append(lb(w["krokow_na_s"]))
+            kom.append(lb(kps(w)))
         wiersze.append(kom)
 
     # stosunki od dolu do gory - to jest wlasciwy wynik tej tablicy
@@ -295,14 +303,14 @@ def tab_pgx(katalog):
     wiersze = []
     for n in nazwy:
         gr = [w for w in dane if w["srodowisko"] == n]
-        naj = max(gr, key=lambda w: w["krokow_na_s"])
+        naj = max(gr, key=lambda w: kps(w) or 0.0)
         D = naj.get("D_bajtow", 0)
         B = naj["wsad"]
         wiersze.append([
             esc(n),
             lb(naj.get("akcji", 0)), lb(D), lb(B),
             lb(0.57 * C_L2 / (2 * D)) if D else "---",
-            lb(naj["krokow_na_s"]),
+            lb(kps(naj)),
             f"{2 * B * D / C_L2:.3f}" if D else "---",
         ])
     uwaga = ("All environments measured on the same accelerator with the same "

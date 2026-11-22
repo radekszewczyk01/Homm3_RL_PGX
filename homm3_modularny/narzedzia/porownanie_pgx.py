@@ -152,18 +152,25 @@ def nasze(preset, wsady, krokow, powt):
 
     kfg = PRESETY[preset]
     env = zbuduj(kfg)
+    D = float(pomiar.rozmiar_stanu(env))
     wiersze = []
     for B in wsady:
-        w = pomiar.przepustowosc(env, kfg, B=B, krokow=krokow, powt=powt,
+        w = pomiar.przepustowosc(env, B, kroki=krokow, powtorzenia=powt,
                                  metoda="benchark")
+        # pomiar.przepustowosc nazywa to 'krokow_na_sekunde'; w tym skrypcie
+        # wszedzie jest 'krokow_na_s', wiec mapujemy raz tutaj
+        kps = w.get("krokow_na_sekunde", w.get("krokow_na_s"))
         wiersze.append({
             "srodowisko": f"nasze ({preset})",
             "wsad": B,
-            "krokow_na_s": w["krokow_na_s"],
-            "D_bajtow": float(pomiar.rozmiar_stanu(kfg)["D"]),
+            "krokow_na_s": kps,
+            "D_bajtow": D,
+            "zbior_roboczy_MiB": 2 * B * D / 2**20,
             "akcji": int(kfg.liczba_akcji),
         })
-        print(f"    wsad {B:<6} {w['krokow_na_s']:>14,.0f} krokow/s")
+        print(f"    wsad {B:<6} {kps:>14,.0f} krokow/s"
+              f"   D = {D:>9,.1f} B"
+              f"   zbior roboczy {2 * B * D / 2**20:>8.1f} MiB")
     return wiersze
 
 
