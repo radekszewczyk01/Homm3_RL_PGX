@@ -246,51 +246,134 @@ def main():
                   f"   zbior roboczy {w['zbior_roboczy_MiB']:>8.1f} MiB")
 
     # -----------------------------------------------------------------
-    # tabela: optimum kazdego srodowiska wobec przewidywania reguly
+    # klasyfikacja rezimow, a POTEM regula
+    #
+    # PIERWSZA WERSJA TEGO KODU BYLA ZLA i warto wiedziec dlaczego, bo blad
+    # jest pouczajacy. Brala max() z kazdej krzywej i wstawiala go do reguly
+    # progu. Tymczasem regula opisuje krzywa, ktora ma SZCZYT i ZALAMANIE,
+    # a z pieciu zmierzonych srodowisk takich bylo dwa. Pozostale trzy albo
+    # rosna do konca skanu, albo saturuja bez zalamania, albo tona w szumie -
+    # i dla nich max() jest po prostu najwyzszym punktem szumu. Wrzucone do
+    # jednej sredniej daly odchylenie 0,43 i werdykt "regula sie nie
+    # przenosi", ktory byl artefaktem statystyki, nie wynikiem.
+    #
+    # Dlatego teraz najpierw ustalamy, czy krzywa w ogole ma zalamanie:
+    #   ZALAMANIE  szczyt / plateau >= 1,25 i krzywa po spadku NIE WRACA
+    #   SZUM       po spadku wraca powyzej 1,15 minimum - czyli to nie spadek
+    #   SATURACJA  plaska gora bez zalamania w mierzonym zakresie
+    #   ROSNIE     maksimum na brzegu skanu, optimum lezy dalej
+    # i srednia liczymy TYLKO po tych z zalamaniem.
     # -----------------------------------------------------------------
     print("\n" + "=" * 78)
-    print("OPTIMUM WOBEC REGULY  B_opt ~ C_eff / (2 D)")
+    print("REZIMY I REGULA  B_opt ~ C_eff / (2 D)")
     print("=" * 78)
-    C_L2 = 72 * 2**20
-    print(f"  pojemnosc L2 nominalna: {C_L2 / 2**20:.0f} MiB")
-    print(f"  {'srodowisko':<22} {'akcji':>7} {'D [B]':>10} "
-          f"{'B zmierzone':>12} {'B z reguly':>11} {'C_eff/C_L2':>11}")
-    print("  " + "-" * 76)
+    C_L2 = int(os.environ.get("L2_BAJTOW", 72 * 2**20))
+    print(f"  pojemnosc L2 nominalna: {C_L2 / 2**20:.0f} MiB"
+          f"   (zmien zmienna L2_BAJTOW dla innej karty)")
 
-    wsp = []
-    for nazwa in dict.fromkeys(w["srodowisko"] for w in wszystko):
-        wiersze = [w for w in wszystko if w["srodowisko"] == nazwa]
-        najlepszy = max(wiersze, key=lambda w: w["krokow_na_s"])
-        D = najlepszy["D_bajtow"]
-        B = najlepszy["wsad"]
+    def klasyfikuj(gr):
+        gr = sorted(gr, key=lambda w: w["wsad"])
+        B = [w["wsad"] for w in gr]
+        y = [kps(w) or 0.0 for w in gr]
+        p = max(range(len(y)), key=lambda i: y[i])
+        ogon = sorted(y[-3:])
+        plateau = ogon[len(ogon) // 2] or 1.0
+        stosunek = y[p] / plateau
+        # pierwszy duzy spadek i czy krzywa po nim wraca
+        spadek = next((i for i in range(len(y) - 1)
+                       if y[i + 1] < 0.85 * y[i]), None)
+        B_ostatni = B[spadek] if spadek is not None else None
+        po = y[p + 1:]
+        wraca = bool(po) and max(po) > 1.15 * min(po)
+        if p == len(y) - 1:
+            return "ROSNIE", B[p], B_ostatni, stosunek, False
+        if wraca and stosunek < 1.5:
+            return "SZUM", B[p], B_ostatni, stosunek, False
+        if stosunek >= 1.25:
+            return "ZALAMANIE", B[p], B_ostatni, stosunek, True
+        return "SATURACJA", B[p], B_ostatni, stosunek, False
+
+    print(f"\n  {'srodowisko':<22} {'D [B]':>9} {'B szczyt':>9} "
+          f"{'z reguly':>9} {'iloraz':>7} {'C/C_L2':>8} {'szczyt/plateau':>15}  rezim")
+    print("  " + "-" * 104)
+
+    z_zalamaniem = []
+    for n in dict.fromkeys(w["srodowisko"] for w in wszystko):
+        gr = [w for w in wszystko if w["srodowisko"] == n]
+        rez, B_szczyt, B_ostatni, stosunek, licz = klasyfikuj(gr)
+        D = next(w.get("D_bajtow", 0) for w in gr)
+        if not D:
+            continue
         z_reguly = 0.57 * C_L2 / (2 * D)
-        udzial = 2 * B * D / C_L2
-        na_brzegu = B in (min(a.wsady), max(a.wsady))
-        wsp.append((nazwa, udzial, na_brzegu))
-        print(f"  {nazwa:<22} {najlepszy.get('akcji', 0):>7,} {D:>10,.0f} "
-              f"{B:>12,} {z_reguly:>11,.0f} {udzial:>11.3f}"
-              + ("   <-- na brzegu skanu, optimum moze lezec dalej"
-                 if na_brzegu else ""))
+        udzial = 2 * B_szczyt * D / C_L2
+        dopisek = ""
+        if rez == "ROSNIE":
+            dopisek = "  optimum za brzegiem skanu"
+        elif rez == "SZUM":
+            dopisek = "  zwieksz --powt, krzywa tonie w szumie"
+        elif rez == "SATURACJA":
+            dopisek = "  brak zalamania w zakresie"
+        elif B_ostatni and B_ostatni != B_szczyt:
+            dopisek = (f"  zalamanie az przy {B_ostatni}, "
+                       f"czyli C/C_L2 = {2 * B_ostatni * D / C_L2:.3f}")
+        print(f"  {n:<22} {D:>9,.0f} {B_szczyt:>9,} {z_reguly:>9,.0f} "
+              f"{B_szczyt / z_reguly:>7.2f} {udzial:>8.3f} {stosunek:>15.2f}"
+              f"  {rez}{dopisek}")
+        if licz:
+            z_zalamaniem.append((n, B_szczyt / z_reguly, udzial, stosunek))
 
-    srodki = [u for _, u, brzeg in wsp if not brzeg]
     print()
-    if len(srodki) >= 2:
-        print(f"  C_eff/C_L2 na podstawie {len(srodki)} srodowisk z optimum "
-              f"WEWNATRZ skanu:")
-        print(f"    srednia {np.mean(srodki):.3f}, odchylenie "
-              f"{np.std(srodki):.3f}, zakres "
-              f"{min(srodki):.3f}..{max(srodki):.3f}")
-        if np.std(srodki) / max(np.mean(srodki), 1e-9) < 0.25:
-            print("    STALA w granicach 25 procent - regula przenosi sie")
-            print("    miedzy niezaleznymi implementacjami na tej samej karcie.")
+    if len(z_zalamaniem) >= 2:
+        ilorazy = [i for _, i, _, _ in z_zalamaniem]
+        udzialy = [u for _, _, u, _ in z_zalamaniem]
+        stos = [s for _, _, _, s in z_zalamaniem]
+        print(f"  Srodowisk z ZALAMANIEM: {len(z_zalamaniem)} "
+              f"({', '.join(n for n, _, _, _ in z_zalamaniem)})")
+        print(f"    szczyt / przewidywanie: "
+              f"{min(ilorazy):.2f}..{max(ilorazy):.2f}")
+        print(f"    C_eff/C_L2 w szczycie:  "
+              f"{min(udzialy):.3f}..{max(udzialy):.3f}")
+        print(f"    glebokosc zalamania:    "
+              f"x{min(stos):.2f}..x{max(stos):.2f}")
+        if max(ilorazy) / max(min(ilorazy), 1e-9) < 1.5:
+            print("    Szczyty zgodne z przewidywaniem w granicach polowy"
+                  " rzedu - regula LOKALIZUJE szczyt")
+            print("    na niezaleznych implementacjach. Nie przesadzaj:"
+                  " to zgodnosc szczytu,")
+            print("    nie miejsca zalamania, ktore wypada dalej.")
         else:
-            print("    NIE jest stala. Regula nie przenosi sie poza nasze")
-            print("    srodowisko i w artykule trzeba to napisac wprost,")
-            print("    zamiast podawac wspolczynnik 0,57 jako ogolny.")
+            print("    Szczyty NIE sa zgodne - regula nie przenosi sie"
+                  " miedzy implementacjami")
+            print("    i wspolczynnika nie wolno podawac jako ogolnego.")
     else:
-        print("  Za malo srodowisk z optimum wewnatrz skanu, zeby cos")
-        print("  powiedziec. Rozszerz --wsady w obie strony: male srodowiska")
-        print("  (kolko i krzyzyk) maja optimum przy bardzo duzym wsadzie.")
+        print("  Mniej niz dwa srodowiska z zalamaniem - nie ma czego")
+        print("  porownywac. Zeby regula dala sie sprawdzic, trzeba srodowisk")
+        print("  OGRANICZONYCH PASMEM; te o tanim kroku rosna do konca skanu")
+        print("  i sa w innym rezimie, tym samym co praca o Generals.io.")
+
+    # ---------------------------------------------------------------
+    # rozrzut przepustowosci - osobny wynik, niezalezny od reguly
+    # ---------------------------------------------------------------
+    print("\n" + "=" * 78)
+    print("ROZRZUT PRZEPUSTOWOSCI NA JEDNEJ KARCIE")
+    print("=" * 78)
+    print("  To jest odpowiedz na zarzut 'porownujecie GPU z CPU'. Srodowiska")
+    print("  natywne dla akceleratora roznia sie miedzy soba o dwa rzedy")
+    print("  wielkosci NA TYM SAMYM SPRZECIE, bo roznia sie praca na krok.")
+    naj = {}
+    for n in dict.fromkeys(w["srodowisko"] for w in wszystko):
+        gr = [w for w in wszystko if w["srodowisko"] == n]
+        naj[n] = max(kps(w) or 0.0 for w in gr)
+    if naj:
+        lo, hi = min(naj.values()), max(naj.values())
+        for n, v in sorted(naj.items(), key=lambda kv: kv[1]):
+            gwiazdka = "  <-- nasze" if n.startswith("nasze") else ""
+            print(f"    {n:<22} {v:>14,.0f} krokow/s{gwiazdka}")
+        print(f"\n    rozrzut x{hi / max(lo, 1e-9):.0f}")
+        nasze_v = next((v for n, v in naj.items() if n.startswith("nasze")), None)
+        if nasze_v:
+            print(f"    nasze: x{nasze_v / lo:.1f} powyzej najslabszego, "
+                  f"x{hi / nasze_v:.0f} ponizej najmocniejszego")
 
     os.makedirs(a.wyniki, exist_ok=True)
     sciezka = os.path.join(a.wyniki, "porownanie_pgx.json")
