@@ -1,0 +1,13 @@
+Total bytes used: 1980 (1.9KiB)
+
+Allocations sorted by size:
+
+cumulative_size; total_size - cumulative_size; allocation
+------------------------------------------------------------------------------
+      990B( 50%);       990B; allocation 0: size 990B, output shape is |pred[165,6]|, maybe-live-out:
+    1.9KiB(100%);         0B; allocation 1: size 990B, parameter 0, shape |pred[165,6]| at ShapeIndex {}:
+
+
+Allocations sorted by size with their values:
+allocation 0: size 990B, output shape is |pred[165,6]|, maybe-live-out:
+allocation 1: size 990B, parameter 0, shape |pred[165,6]| at ShapeIndex {}:

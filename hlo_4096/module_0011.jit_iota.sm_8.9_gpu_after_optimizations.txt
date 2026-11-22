@@ -1,0 +1,10 @@
+HloModule jit_iota, is_scheduled=true, entry_computation_layout={()->s32[165]{0}}, allow_spmd_sharding_propagation_to_output={true}, frontend_attributes={fingerprint_before_lhs="ac7954ee1c151b478218885b9fdeef6c"}
+
+%wrapped_iota_computation () -> s32[165] {
+  ROOT %iota.1.1 = s32[165]{0} iota(), iota_dimension=0, metadata={op_name="jit(iota)/jit(main)/iota" source_file="/work/src/jax_engine_v3.py" source_line=126}
+}
+
+ENTRY %main.2 () -> s32[165] {
+  ROOT %wrapped_iota = s32[165]{0} fusion(), kind=kLoop, calls=%wrapped_iota_computation, metadata={op_name="jit(iota)/jit(main)/iota" source_file="/work/src/jax_engine_v3.py" source_line=126}
+}
+

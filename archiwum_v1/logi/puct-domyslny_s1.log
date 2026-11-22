@@ -1,0 +1,18 @@
+[pula] 101 stworow  (2hex 24, strzelcy 30, latacze 18, oddech 2, dookolny 0)
+[14:24:20] === puct-domyslny_s1 ===  PUCT, stala domyslna
+[14:24:20] polityka=muzero c_puct=1.25 m=None ksztaltowanie=True
+[14:24:20] B=256 N=100 odcinek=128 budzet=180 min
+[14:24:20] lr=0.001 krokow_uczenia=128
+[14:24:20] urzadzenia: [CudaDevice(id=0)]
+[14:24:25] parametrow sieci: 2,785,739
+[14:24:30] kompilacja i pierwsza iteracja...
+[14:49:15] pierwsza iteracja gotowa w 1484s (w tym kompilacja)
+[14:49:36] it    1   24.7 min  dec    32,768  wsk.zwyc 0.059  korzen   1.9  strata 4.1295    22.1 dec/s
+[15:20:31] it    2   56.0 min  dec    65,536  wsk.zwyc 0.062  korzen   1.8  strata 3.9260    19.5 dec/s
+[15:51:28] it    3   87.0 min  dec    98,304  wsk.zwyc 0.066  korzen   1.8  strata 3.8405    18.8 dec/s
+[16:22:26] it    4  117.9 min  dec   131,072  wsk.zwyc 0.072  korzen   1.8  strata 3.7455    18.5 dec/s
+[16:53:24] it    5  148.9 min  dec   163,840  wsk.zwyc 0.072  korzen   1.8  strata 3.7107    18.3 dec/s
+[17:24:21] it    6  179.8 min  dec   196,608  wsk.zwyc 0.047  korzen   1.8  strata 3.6934    18.2 dec/s
+[17:55:19] it    7  210.8 min  dec   229,376  wsk.zwyc 0.070  korzen   1.8  strata 3.6764    18.1 dec/s
+[17:55:19] zakonczono: 7 iteracji, 229,376 decyzji, 1,259 partii
+[17:55:19] koncowy wskaznik zwyciestw: 0.070

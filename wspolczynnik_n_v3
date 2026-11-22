@@ -1,0 +1,129 @@
+{
+  "machine": {
+    "host": "f64984e5678e",
+    "timestamp": "2026-08-25T12:54:56+00:00",
+    "platform": "gpu",
+    "device_kind": "NVIDIA RTX 5000 Ada Generation",
+    "n_devices": 1,
+    "cuda_visible": "0",
+    "cpu": "AMD EPYC 7F72 24-Core Processor",
+    "cpu_cores": 48,
+    "gpus": [
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.173.02",
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.173.02",
+      "NVIDIA RTX 5000 Ada Generation / 32760 / 580.173.02"
+    ],
+    "jax_version": "0.6.2",
+    "python": "3.10.12",
+    "preallocate": "false"
+  },
+  "tag": "eta-v3",
+  "engine": "v3",
+  "foreign_processes": [
+    "3831443, 310"
+  ],
+  "config": {
+    "n_steps": 100,
+    "num_simulations": 100,
+    "repeats": 7,
+    "batches": [
+      1024,
+      2048,
+      4096
+    ],
+    "policies": [
+      "muzero"
+    ],
+    "max_considered_actions": 16,
+    "peak_bw_gbs": 576.0
+  },
+  "env_stats": {
+    "batch": 1024,
+    "n_steps": 200,
+    "total_steps": 204800,
+    "episodes_finished": 123,
+    "mean_episode_len": 1665.04,
+    "legal_actions_mean": 79.22,
+    "legal_actions_std": 33.94,
+    "legal_actions_min": 2,
+    "legal_actions_max": 198,
+    "legal_actions_p05": 35.0,
+    "legal_actions_p50": 72.0,
+    "legal_actions_p95": 148.0
+  },
+  "steps": [
+    {
+      "batch": 1024,
+      "n_steps": 100,
+      "lower_s": 4.213,
+      "compile_s": 13.727,
+      "first_run_s": 0.3517,
+      "wall_s_best": 0.3085,
+      "wall_s_median": 0.3091,
+      "wall_s_std": 0.00028,
+      "steps_per_s": 331907.7,
+      "mem_bytes": 11673600,
+      "flops": 502441856.0,
+      "bytes_accessed": 1002877504.0,
+      "arithmetic_intensity": 0.501,
+      "mem_argument_bytes": 10730504,
+      "mem_output_bytes": 10730824,
+      "mem_temp_bytes": 42051600,
+      "bytes_per_state": 10479.0,
+      "achieved_bw_gbs": 3.25,
+      "bw_utilisation_pct": 0.564,
+      "achieved_gflops": 1.63
+    },
+    {
+      "batch": 2048,
+      "n_steps": 100,
+      "lower_s": 4.422,
+      "compile_s": 13.866,
+      "first_run_s": 0.6182,
+      "wall_s_best": 0.5622,
+      "wall_s_median": 0.5636,
+      "wall_s_std": 0.00101,
+      "steps_per_s": 364271.9,
+      "mem_bytes": 22427648,
+      "flops": 1003436928.0,
+      "bytes_accessed": 2001139200.0,
+      "arithmetic_intensity": 0.501,
+      "mem_argument_bytes": 21461000,
+      "mem_output_bytes": 21461320,
+      "mem_temp_bytes": 81836328,
+      "bytes_per_state": 10479.0,
+      "achieved_bw_gbs": 3.56,
+      "bw_utilisation_pct": 0.618,
+      "achieved_gflops": 1.78
+    },
+    {
+      "batch": 4096,
+      "n_steps": 100,
+      "lower_s": 4.42,
+      "compile_s": 13.577,
+      "first_run_s": 1.982,
+      "wall_s_best": 1.9588,
+      "wall_s_median": 1.96,
+      "wall_s_std": 0.00091,
+      "steps_per_s": 209105.2,
+      "mem_bytes": 47414272,
+      "flops": 1996015232.0,
+      "bytes_accessed": 3994757376.0,
+      "arithmetic_intensity": 0.5,
+      "mem_argument_bytes": 42921992,
+      "mem_output_bytes": 42922312,
+      "mem_temp_bytes": 128494568,
+      "bytes_per_state": 10479.0,
+      "achieved_bw_gbs": 2.04,
+      "bw_utilisation_pct": 0.354,
+      "achieved_gflops": 1.02
+    }
+  ],
+  "mcts": [],
+  "sims_sweep": [],
+  "errors": [],
+  "bytes_per_state": 10479.0,
+  "foreign_processes_after": [
+    "3831443, 310"
+  ]
+}

@@ -1,0 +1,15 @@
+HloModule jit_multiply, is_scheduled=true, entry_computation_layout={(s32[165]{0}, s32[])->s32[165]{0}}, allow_spmd_sharding_propagation_to_parameters={true,true}, allow_spmd_sharding_propagation_to_output={true}, frontend_attributes={fingerprint_before_lhs="6e462b63b9bba0c5f80513f613dfbdad"}
+
+%fused_multiply (param_0: s32[165], param_1.1: s32[]) -> s32[165] {
+  %param_0 = s32[165]{0} parameter(0)
+  %param_1.1 = s32[] parameter(1)
+  %broadcast.3.1 = s32[165]{0} broadcast(%param_1.1), dimensions={}, metadata={op_name="jit(multiply)/jit(main)/mul" source_file="/work/src/jax_engine_v3.py" source_line=151}
+  ROOT %multiply.4.1 = s32[165]{0} multiply(%param_0, %broadcast.3.1), metadata={op_name="jit(multiply)/jit(main)/mul" source_file="/work/src/jax_engine_v3.py" source_line=151}
+}
+
+ENTRY %main.5 (Arg_0.1: s32[165], Arg_1.2: s32[]) -> s32[165] {
+  %Arg_1.2 = s32[] parameter(1), metadata={op_name="y"}
+  %Arg_0.1 = s32[165]{0} parameter(0), metadata={op_name="x"}
+  ROOT %loop_multiply_fusion = s32[165]{0} fusion(%Arg_0.1, %Arg_1.2), kind=kLoop, calls=%fused_multiply, metadata={op_name="jit(multiply)/jit(main)/mul" source_file="/work/src/jax_engine_v3.py" source_line=151}
+}
+

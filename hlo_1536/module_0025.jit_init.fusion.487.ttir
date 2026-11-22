@@ -1,0 +1,32 @@
+#indexing_map = #xla.indexing_map<"(pid_0) -> (pid_0 * 32), domain: pid_0 in [0, 47]">
+module {
+  func.func @fusion_487_impl(%arg0: tensor<1536x14xi8>, %arg1: tensor<1536x14xf32>, %arg2: tensor<1536x14xf32>) -> tensor<1536x14xf32> {
+    %cst = arith.constant dense<1.000000e+00> : tensor<32xf32>
+    %cst_0 = arith.constant dense<0.000000e+00> : tensor<32x16xf32>
+    %cst_1 = arith.constant dense<14> : tensor<32x16xi32>
+    %0 = tt.get_program_id x : i32
+    %1 = arith.extsi %0 : i32 to i64
+    %2 = arith.index_castui %1 : i64 to index
+    %3 = xla.apply_indexing #indexing_map(%2)
+    %extracted_tile = triton_xla.extract %arg0[%3, 0] [32, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<1536x14xi8> to tensor<32x16xi8>
+    %4 = arith.trunci %extracted_tile : tensor<32x16xi8> to tensor<32x16xi1>
+    %extracted_tile_2 = triton_xla.extract %arg1[%3, 0] [32, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<1536x14xf32> to tensor<32x16xf32>
+    %5 = tt.make_range {end = 16 : i32, start = 0 : i32} : tensor<16xi32>
+    %6 = tt.expand_dims %5 {axis = 0 : i32} : tensor<16xi32> -> tensor<1x16xi32>
+    %7 = tt.broadcast %6 : tensor<1x16xi32> -> tensor<32x16xi32>
+    %8 = arith.cmpi slt, %7, %cst_1 : tensor<32x16xi32>
+    %9 = arith.select %8, %extracted_tile_2, %cst_0 : tensor<32x16xi1>, tensor<32x16xf32>
+    %10 = "tt.reduce"(%9) <{axis = 1 : i32}> ({
+    ^bb0(%arg3: f32, %arg4: f32):
+      %16 = arith.addf %arg3, %arg4 : f32
+      tt.reduce.return %16 : f32
+    }) : (tensor<32x16xf32>) -> tensor<32xf32>
+    %11 = arith.maximumf %10, %cst : tensor<32xf32>
+    %12 = tt.expand_dims %11 {axis = 1 : i32} : tensor<32xf32> -> tensor<32x1xf32>
+    %13 = tt.broadcast %12 : tensor<32x1xf32> -> tensor<32x16xf32>
+    %14 = arith.divf %extracted_tile_2, %13 : tensor<32x16xf32>
+    %15 = arith.select %4, %14, %cst_0 : tensor<32x16xi1>, tensor<32x16xf32>
+    %inserted_tile = triton_xla.insert %15 into %arg2[%3, 0] [32, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<32x16xf32> into tensor<1536x14xf32>
+    return %inserted_tile : tensor<1536x14xf32>
+  }
+}

@@ -1,0 +1,32 @@
+BufferAssignment:
+allocation 0: size 990, output shape is |pred[165,6]|, maybe-live-out:
+ value: <1 copy.1 @0> (size=990,offset=0): pred[165,6]{1,0}
+allocation 1: size 990, parameter 0, shape |pred[165,6]| at ShapeIndex {}:
+ value: <0 Arg_0.1 @0> (size=990,offset=0): pred[165,6]{1,0}
+
+Total bytes used: 1980 (1.9KiB)
+
+Used values:
+<0 Arg_0.1 @0>
+ positions:
+  Arg_0.1
+ uses:
+  copy.1, operand 0
+ from instruction: %Arg_0.1 = pred[165,6]{1,0} parameter(0), metadata={op_name="args[0]"}
+<1 copy.1 @0>
+ positions:
+  copy.1
+ uses:
+ from instruction: %copy.1 = pred[165,6]{1,0} copy(%Arg_0.1)
+
+
+HloLiveRange (max 2):
+  InstructionSequence:
+    0:Arg_0.1
+    1:copy.1
+  BufferLiveRange:
+    Arg_0.1{}:0-2
+    copy.1{}:1-2
+  Live ranges at 1 (peak):
+    Arg_0.1{}: 990 bytes (cumulative: 990 bytes)
+    copy.1{}: 990 bytes (cumulative: 1980 bytes)

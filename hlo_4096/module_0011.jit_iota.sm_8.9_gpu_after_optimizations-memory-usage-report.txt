@@ -1,0 +1,11 @@
+Total bytes used: 660 (660B)
+
+Allocations sorted by size:
+
+cumulative_size; total_size - cumulative_size; allocation
+------------------------------------------------------------------------------
+      660B(100%);         0B; allocation 0: size 660B, output shape is |s32[165]|, maybe-live-out:
+
+
+Allocations sorted by size with their values:
+allocation 0: size 660B, output shape is |s32[165]|, maybe-live-out:

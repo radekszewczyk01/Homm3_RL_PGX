@@ -1,0 +1,7 @@
+HloModule jit_convert_element_type, is_scheduled=true, entry_computation_layout={(f32[101,20]{1,0})->f32[101,20]{1,0}}, allow_spmd_sharding_propagation_to_parameters={true}, allow_spmd_sharding_propagation_to_output={true}, frontend_attributes={fingerprint_before_lhs="7591f9a9cb09b5c9f94e19dd67f42b4f"}
+
+ENTRY %main.2 (Arg_0.1: f32[101,20]) -> f32[101,20] {
+  %Arg_0.1 = f32[101,20]{1,0} parameter(0), metadata={op_name="args[0]"}
+  ROOT %copy.1 = f32[101,20]{1,0} copy(%Arg_0.1)
+}
+

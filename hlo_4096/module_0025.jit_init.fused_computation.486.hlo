@@ -1,0 +1,13 @@
+%fused_computation.486 (param_0.990: pred[4096,14], param_1.8881: f32[4096,14]) -> f32[4096,14] {
+  %param_0.990 = pred[4096,14]{1,0} parameter(0)
+  %param_1.8881 = f32[4096,14]{1,0} parameter(1)
+  %constant_1893 = f32[] constant(0)
+  %reduce.28 = f32[4096]{0} reduce(%param_1.8881, %constant_1893), dimensions={1}, to_apply=%region_32.2728, metadata={op_name="jit(init)/jit(main)/reduce_sum" source_file="/work/src/jax_engine_v3.py" source_line=755}
+  %constant_1892 = f32[] constant(1)
+  %broadcast.3913 = f32[4096]{0} broadcast(%constant_1892), dimensions={}
+  %maximum.88 = f32[4096]{0} maximum(%reduce.28, %broadcast.3913), metadata={op_name="jit(init)/jit(main)/max" source_file="/work/src/jax_engine_v3.py" source_line=755}
+  %broadcast.3912 = f32[4096,14]{1,0} broadcast(%maximum.88), dimensions={0}, metadata={op_name="jit(init)/jit(main)/div" source_file="/work/src/jax_engine_v3.py" source_line=755}
+  %divide.11 = f32[4096,14]{1,0} divide(%param_1.8881, %broadcast.3912), metadata={op_name="jit(init)/jit(main)/div" source_file="/work/src/jax_engine_v3.py" source_line=755}
+  %broadcast.2453.17 = f32[4096,14]{1,0} broadcast(%constant_1893), dimensions={}, metadata={op_name="jit(init)/jit(main)/vmap(jit(_where))/broadcast_in_dim" source_file="/work/src/jax_engine_v3.py" source_line=747}
+  ROOT %select.133.1 = f32[4096,14]{1,0} select(%param_0.990, %divide.11, %broadcast.2453.17), metadata={op_name="jit(init)/jit(main)/vmap(jit(_where))/select_n" source_file="/work/src/jax_engine_v3.py" source_line=747}
+}

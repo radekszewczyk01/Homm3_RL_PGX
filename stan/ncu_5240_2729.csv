@@ -1,0 +1,63 @@
+==WARNING== Note: Running with uncontrolled GPU caches. Profiling results may be inconsistent.
+==PROF== Connected to process 13356 (/usr/bin/python3.10)
+==PROF== Target process 13558 terminated before first instrumented API call.
+==PROF== Target process 13566 terminated before first instrumented API call.
+==PROF== Target process 13826 terminated before first instrumented API call.
+==============================================================================
+  host            f03b80b0be44
+  timestamp       2026-11-14T19:17:26+00:00
+  platform        gpu
+  device_kind     NVIDIA RTX 5000 Ada Generation
+  n_devices       1
+  cuda_visible    0
+  cpu             AMD EPYC 7F72 24-Core Processor
+  cpu_cores       48
+  gpus            ['NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04', 'NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04', 'NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04']
+  jax_version     0.6.2
+  python          3.10.12
+  preallocate     (domyslne = true)
+  [pula] 101 stworow  (2hex 24, strzelcy 30, latacze 18, oddech 2, dookolny 0)
+==============================================================================
+
+[1/3] Kroki symulacji (5 krokow na pomiar)
+   wsad       kroki/s     czas     std  compile   B/stan     zbior    GB/s    %BW
+   2729       148,703    0.092  0.0000     14.1        0      0.0M     0.0   0.00
+
+==============================================================================
+Szczyt krokow:        148,703 /s przy wsadzie 2729
+
+  !! Zbior cudzych procesow zmienil sie w trakcie pomiaru.
+
+Zapisano /work/stan/bench_5240_2729.json
+==PROF== Disconnected from process 13356
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","484600389863.55"
+"0","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","213408"
+"0","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","22.11"
+"1","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","464724270353.30"
+"1","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166656"
+"1","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.72"
+"2","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","464030757401.00"
+"2","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166464"
+"2","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.68"
+"3","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","464510867474.51"
+"3","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166368"
+"3","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.78"
+"4","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","464019992310.65"
+"4","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166464"
+"4","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.76"
+"5","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","463687163720.22"
+"5","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166528"
+"5","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.71"
+"6","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","465105759969.18"
+"6","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166112"
+"6","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.69"
+"7","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","465019456752.07"
+"7","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166112"
+"7","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.77"
+"8","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","464935875216.64"
+"8","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166176"
+"8","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.68"
+"9","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","dram__bytes.sum.per_second","byte/second","463985390234.53"
+"9","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","gpu__time_duration.sum","nsecond","166464"
+"9","13356","python3.10","127.0.0.1","input_reduce_fusion","1","13","(256, 1, 1)","(56286, 1, 1)","0","8.9","Command line profiler metrics","lts__t_sector_hit_rate.pct","%","23.72"

@@ -1,0 +1,146 @@
+[
+  {
+    "wskaznik_zwyciestw": 0.6484,
+    "partii_rozegranych": 256,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.4219,
+    "a": "gumbel-m64_s0[siec]",
+    "b": "zachlanna"
+  },
+  {
+    "wskaznik_zwyciestw": 0.6602,
+    "partii_rozegranych": 256,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.4141,
+    "a": "gumbel-m16_s0[siec]",
+    "b": "zachlanna"
+  },
+  {
+    "wskaznik_zwyciestw": 0.6211,
+    "partii_rozegranych": 256,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.3672,
+    "a": "gumbel-m16-bez_s0[siec]",
+    "b": "zachlanna"
+  },
+  {
+    "wskaznik_zwyciestw": 0.3242,
+    "partii_rozegranych": 256,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.4297,
+    "a": "puct-strojony_s1[siec]",
+    "b": "zachlanna"
+  },
+  {
+    "wskaznik_zwyciestw": 0.0859,
+    "partii_rozegranych": 256,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.8281,
+    "a": "puct-domyslny_s1[siec]",
+    "b": "zachlanna"
+  },
+  {
+    "wskaznik_zwyciestw": 0.4762,
+    "partii_rozegranych": 231,
+    "partii_nieskonczonych": 25,
+    "par_rozstrzygnietych": 0.1797,
+    "a": "gumbel-m64_s0[siec]",
+    "b": "gumbel-m16_s0[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.5714,
+    "partii_rozegranych": 196,
+    "partii_nieskonczonych": 60,
+    "par_rozstrzygnietych": 0.0938,
+    "a": "gumbel-m64_s0[siec]",
+    "b": "gumbel-m16-bez_s0[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.8259,
+    "partii_rozegranych": 247,
+    "partii_nieskonczonych": 9,
+    "par_rozstrzygnietych": 0.6094,
+    "a": "gumbel-m64_s0[siec]",
+    "b": "puct-strojony_s1[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.9514,
+    "partii_rozegranych": 247,
+    "partii_nieskonczonych": 9,
+    "par_rozstrzygnietych": 0.8516,
+    "a": "gumbel-m64_s0[siec]",
+    "b": "puct-domyslny_s1[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.5893,
+    "partii_rozegranych": 224,
+    "partii_nieskonczonych": 32,
+    "par_rozstrzygnietych": 0.1797,
+    "a": "gumbel-m16_s0[siec]",
+    "b": "gumbel-m16-bez_s0[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.834,
+    "partii_rozegranych": 253,
+    "partii_nieskonczonych": 3,
+    "par_rozstrzygnietych": 0.6484,
+    "a": "gumbel-m16_s0[siec]",
+    "b": "puct-strojony_s1[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.9679,
+    "partii_rozegranych": 249,
+    "partii_nieskonczonych": 7,
+    "par_rozstrzygnietych": 0.8828,
+    "a": "gumbel-m16_s0[siec]",
+    "b": "puct-domyslny_s1[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.8057,
+    "partii_rozegranych": 247,
+    "partii_nieskonczonych": 9,
+    "par_rozstrzygnietych": 0.5703,
+    "a": "gumbel-m16-bez_s0[siec]",
+    "b": "puct-strojony_s1[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.9347,
+    "partii_rozegranych": 245,
+    "partii_nieskonczonych": 11,
+    "par_rozstrzygnietych": 0.8047,
+    "a": "gumbel-m16-bez_s0[siec]",
+    "b": "puct-domyslny_s1[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.7247,
+    "partii_rozegranych": 247,
+    "partii_nieskonczonych": 9,
+    "par_rozstrzygnietych": 0.4297,
+    "a": "puct-strojony_s1[siec]",
+    "b": "puct-domyslny_s1[siec]"
+  },
+  {
+    "wskaznik_zwyciestw": 0.6693,
+    "partii_rozegranych": 254,
+    "partii_nieskonczonych": 2,
+    "par_rozstrzygnietych": 0.375,
+    "a": "gumbel-m16_s0[mcts]",
+    "b": "zachlanna"
+  },
+  {
+    "wskaznik_zwyciestw": 0.332,
+    "partii_rozegranych": 256,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.3984,
+    "a": "puct-strojony_s1[mcts]",
+    "b": "zachlanna"
+  },
+  {
+    "wskaznik_zwyciestw": 0.0781,
+    "partii_rozegranych": 256,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.8438,
+    "a": "puct-domyslny_s1[mcts]",
+    "b": "zachlanna"
+  }
+]

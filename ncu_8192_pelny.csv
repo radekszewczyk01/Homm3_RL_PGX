@@ -1,0 +1,5 @@
+==PROF== Connected to process 13672 (/usr/bin/python3.10)
+==PROF== Target process 13874 terminated before first instrumented API call.
+==PROF== Target process 13899 terminated before first instrumented API call.
+==PROF== Received signal
+==PROF== Trying to shutdown target application

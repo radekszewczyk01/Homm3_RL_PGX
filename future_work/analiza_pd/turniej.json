@@ -1,0 +1,10 @@
+[
+  {
+    "wskaznik_zwyciestw": 0.0781,
+    "partii_rozegranych": 128,
+    "partii_nieskonczonych": 0,
+    "par_rozstrzygnietych": 0.8438,
+    "a": "puct-domyslny_s1[mcts]",
+    "b": "zachlanna"
+  }
+]

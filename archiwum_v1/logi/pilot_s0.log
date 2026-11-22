@@ -1,0 +1,16 @@
+[pula] 101 stworow  (2hex 24, strzelcy 30, latacze 18, oddech 2, dookolny 0)
+[10:04:53] === pilot_s0 ===  przebieg probny
+[10:04:53] polityka=gumbel c_puct=1.25 m=16 ksztaltowanie=True
+[10:04:53] B=256 N=100 odcinek=128 budzet=25 min
+[10:04:53] lr=0.001 krokow_uczenia=32
+[10:04:53] urzadzenia: [CudaDevice(id=0)]
+[10:04:57] parametrow sieci: 2,785,739
+[10:05:03] kompilacja i pierwsza iteracja...
+[10:08:17] pierwsza iteracja gotowa w 195s (w tym kompilacja)
+[10:11:08] it    2    5.7 min  dec    65,536  wsk.zwyc 0.600  korzen  16.0  strata 4.5809   190.1 dec/s
+[10:16:12] it    4   11.2 min  dec   131,072  wsk.zwyc 0.619  korzen  16.0  strata 4.5183   195.9 dec/s
+[10:21:17] it    6   16.2 min  dec   196,608  wsk.zwyc 0.591  korzen  16.0  strata 4.4261   202.0 dec/s
+[10:26:19] it    8   21.3 min  dec   262,144  wsk.zwyc 0.613  korzen  16.0  strata 4.3860   205.6 dec/s
+[10:31:22] it   10   26.3 min  dec   327,680  wsk.zwyc 0.615  korzen  16.0  strata 4.3792   207.5 dec/s
+[10:31:22] zakonczono: 10 iteracji, 327,680 decyzji, 2,358 partii
+[10:31:22] koncowy wskaznik zwyciestw: 0.615

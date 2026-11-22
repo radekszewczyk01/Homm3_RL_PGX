@@ -1,0 +1,21 @@
+BufferAssignment:
+allocation 0: size 660, output shape is |s32[165]|, maybe-live-out:
+ value: <1 wrapped_iota @0> (size=660,offset=0): s32[165]{0}
+
+Total bytes used: 660 (660B)
+
+Used values:
+<1 wrapped_iota @0>
+ positions:
+  wrapped_iota
+ uses:
+ from instruction: %wrapped_iota = s32[165]{0} fusion(), kind=kLoop, calls=%wrapped_iota_computation, metadata={op_name="jit(iota)/jit(main)/iota" source_file="/work/src/jax_engine_v3.py" source_line=126}
+
+
+HloLiveRange (max 1):
+  InstructionSequence:
+    0:wrapped_iota
+  BufferLiveRange:
+    wrapped_iota{}:0-1
+  Live ranges at 0 (peak):
+    wrapped_iota{}: 660 bytes (cumulative: 660 bytes)

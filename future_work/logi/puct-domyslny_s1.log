@@ -1,0 +1,21 @@
+[pula] 101 stworow  (2hex 24, strzelcy 30, latacze 18, oddech 2, dookolny 0)
+[11:16:17] === puct-domyslny_s1 ===  PUCT, stala domyslna
+[11:16:17] polityka=muzero c_puct=1.25 m=None ksztaltowanie=True
+[11:16:17] B=256 N=100 odcinek=128 budzet=180 min
+[11:16:17] lr=0.001 krokow_uczenia=128
+[11:16:17] urzadzenia: [CudaDevice(id=0)]
+[11:16:21] parametrow sieci: 2,785,739
+[11:16:47] it    0  siec nietrenowana  wsk.zwyc 0.041
+[11:16:47] kompilacja i pierwsza iteracja...
+[11:40:00] pierwsza iteracja gotowa w 1393s (w tym kompilacja)
+[11:40:01] it    1   23.2 min  dec    32,768  wsk.zwyc 0.043  korzen   1.9  strata 4.0791    23.5 dec/s
+[11:58:41] it    2   41.9 min  dec    65,536  wsk.zwyc 0.065  korzen   2.4  strata 3.1579    26.1 dec/s
+[12:19:46] it    3   63.0 min  dec    98,304  wsk.zwyc 0.051  korzen   2.4  strata 2.5662    26.0 dec/s
+[12:36:49] it    4   80.0 min  dec   131,072  wsk.zwyc 0.068  korzen   2.5  strata 1.4276    27.3 dec/s
+[12:53:47] it    5   97.0 min  dec   163,840  wsk.zwyc 0.082  korzen   2.4  strata 1.2474    28.2 dec/s
+[13:12:41] it    6  115.9 min  dec   196,608  wsk.zwyc 0.065  korzen   2.2  strata 1.1615    28.3 dec/s
+[13:33:33] it    7  136.7 min  dec   229,376  wsk.zwyc 0.065  korzen   2.1  strata 1.0626    28.0 dec/s
+[13:56:38] it    8  159.8 min  dec   262,144  wsk.zwyc 0.070  korzen   2.1  strata 0.9965    27.3 dec/s
+[14:22:49] it    9  186.0 min  dec   294,912  wsk.zwyc 0.076  korzen   2.1  strata 0.9565    26.4 dec/s
+[14:22:49] zakonczono: 9 iteracji, 294,912 decyzji, 2,179 partii
+[14:22:49] koncowy wskaznik zwyciestw: 0.076

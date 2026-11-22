@@ -1,0 +1,932 @@
+Total bytes used: 93711042 (89.37MiB)
+
+Allocations sorted by size:
+
+cumulative_size; total_size - cumulative_size; allocation
+------------------------------------------------------------------------------
+  58.52MiB( 65%);   30.85MiB; allocation 611: size 58.52MiB, preallocated-temp:
+  70.12MiB( 78%);   19.25MiB; allocation 0: size 11.60MiB, maybe-live-out:
+  81.72MiB( 91%);    7.65MiB; allocation 1: size 11.60MiB, parameter 1, shape |f32[1536,11,15,12]| at ShapeIndex {}:
+  83.66MiB( 94%);    5.71MiB; allocation 2: size 1.94MiB, maybe-live-out:
+  85.59MiB( 96%);    3.78MiB; allocation 3: size 1.94MiB, parameter 5, shape |pred[1536,1322]| at ShapeIndex {}:
+  85.83MiB( 96%);    3.54MiB; allocation 4: size 247.5KiB, maybe-live-out:
+  86.08MiB( 96%);    3.29MiB; allocation 5: size 247.5KiB, parameter 8, shape |pred[1536,165]| at ShapeIndex {}:
+  86.18MiB( 96%);    3.19MiB; allocation 6: size 106.3KiB, constant:
+  86.26MiB( 97%);    3.11MiB; allocation 7: size 84.0KiB, maybe-live-out:
+  86.34MiB( 97%);    3.03MiB; allocation 8: size 84.0KiB, maybe-live-out:
+  86.43MiB( 97%);    2.94MiB; allocation 9: size 84.0KiB, maybe-live-out:
+  86.51MiB( 97%);    2.86MiB; allocation 10: size 84.0KiB, maybe-live-out:
+  86.59MiB( 97%);    2.78MiB; allocation 11: size 84.0KiB, maybe-live-out:
+  86.67MiB( 97%);    2.70MiB; allocation 12: size 84.0KiB, maybe-live-out:
+  86.75MiB( 97%);    2.62MiB; allocation 13: size 84.0KiB, maybe-live-out:
+  86.84MiB( 97%);    2.53MiB; allocation 14: size 84.0KiB, maybe-live-out:
+  86.92MiB( 97%);    2.45MiB; allocation 15: size 84.0KiB, maybe-live-out:
+  87.00MiB( 97%);    2.37MiB; allocation 16: size 84.0KiB, maybe-live-out:
+  87.08MiB( 97%);    2.29MiB; allocation 17: size 84.0KiB, maybe-live-out:
+  87.16MiB( 98%);    2.21MiB; allocation 18: size 84.0KiB, maybe-live-out:
+  87.25MiB( 98%);    2.12MiB; allocation 19: size 84.0KiB, maybe-live-out:
+  87.33MiB( 98%);    2.04MiB; allocation 20: size 84.0KiB, maybe-live-out:
+  87.41MiB( 98%);    1.96MiB; allocation 21: size 84.0KiB, maybe-live-out:
+  87.49MiB( 98%);    1.88MiB; allocation 22: size 84.0KiB, parameter 10, shape |s32[1536,14]| at ShapeIndex {}:
+  87.57MiB( 98%);    1.79MiB; allocation 23: size 84.0KiB, parameter 11, shape |s32[1536,14]| at ShapeIndex {}:
+  87.66MiB( 98%);    1.71MiB; allocation 24: size 84.0KiB, parameter 12, shape |s32[1536,14]| at ShapeIndex {}:
+  87.74MiB( 98%);    1.63MiB; allocation 25: size 84.0KiB, parameter 13, shape |s32[1536,14]| at ShapeIndex {}:
+  87.82MiB( 98%);    1.55MiB; allocation 26: size 84.0KiB, parameter 14, shape |s32[1536,14]| at ShapeIndex {}:
+  87.90MiB( 98%);    1.47MiB; allocation 27: size 84.0KiB, parameter 15, shape |s32[1536,14]| at ShapeIndex {}:
+  87.98MiB( 98%);    1.38MiB; allocation 28: size 84.0KiB, parameter 16, shape |s32[1536,14]| at ShapeIndex {}:
+  88.07MiB( 99%);    1.30MiB; allocation 29: size 84.0KiB, parameter 17, shape |s32[1536,14]| at ShapeIndex {}:
+  88.15MiB( 99%);    1.22MiB; allocation 30: size 84.0KiB, parameter 18, shape |s32[1536,14]| at ShapeIndex {}:
+  88.23MiB( 99%);    1.14MiB; allocation 31: size 84.0KiB, parameter 19, shape |s32[1536,14]| at ShapeIndex {}:
+  88.31MiB( 99%);    1.06MiB; allocation 32: size 84.0KiB, parameter 20, shape |s32[1536,14]| at ShapeIndex {}:
+  88.39MiB( 99%);   998.3KiB; allocation 33: size 84.0KiB, parameter 21, shape |s32[1536,14]| at ShapeIndex {}:
+  88.48MiB( 99%);   914.3KiB; allocation 34: size 84.0KiB, parameter 23, shape |s32[1536,14]| at ShapeIndex {}:
+  88.56MiB( 99%);   830.3KiB; allocation 35: size 84.0KiB, parameter 38, shape |s32[1536,14]| at ShapeIndex {}:
+  88.64MiB( 99%);   746.3KiB; allocation 36: size 84.0KiB, parameter 22, shape |f32[1536,14]| at ShapeIndex {}:
+  88.67MiB( 99%);   719.7KiB; allocation 37: size 26.6KiB, constant:
+  88.69MiB( 99%);   698.7KiB; allocation 38: size 21.0KiB, maybe-live-out:
+  88.71MiB( 99%);   677.7KiB; allocation 39: size 21.0KiB, maybe-live-out:
+  88.73MiB( 99%);   656.7KiB; allocation 40: size 21.0KiB, maybe-live-out:
+  88.75MiB( 99%);   635.7KiB; allocation 41: size 21.0KiB, maybe-live-out:
+  88.77MiB( 99%);   614.7KiB; allocation 42: size 21.0KiB, maybe-live-out:
+  88.79MiB( 99%);   593.7KiB; allocation 43: size 21.0KiB, maybe-live-out:
+  88.81MiB( 99%);   572.7KiB; allocation 44: size 21.0KiB, maybe-live-out:
+  88.83MiB( 99%);   551.7KiB; allocation 45: size 21.0KiB, maybe-live-out:
+  88.85MiB( 99%);   530.7KiB; allocation 46: size 21.0KiB, maybe-live-out:
+  88.87MiB( 99%);   509.7KiB; allocation 47: size 21.0KiB, maybe-live-out:
+  88.89MiB( 99%);   488.7KiB; allocation 48: size 21.0KiB, maybe-live-out:
+  88.91MiB( 99%);   467.7KiB; allocation 49: size 21.0KiB, maybe-live-out:
+The rest 561 allocations are less than 5% of the total size and not shown.
+
+
+Allocations sorted by size with their values:
+allocation 611: size 58.52MiB, preallocated-temp:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	 39.88MiB( 41%);   39.88MiB;            0;               15; 3×s32[1536,165], pred[1536,165,165], 4×f32[1536,165,12], f32[12,1536,165], pred[1536,1322], f32[12,253440], 3×f32[1536,11,15,12], f32[253440,12]
+	 51.48MiB( 53%);   11.60MiB;     12165120;                1; f32[12,253440]
+	 63.08MiB( 65%);   11.60MiB;     41817600;               13; 13×f32[1536,165,12]
+	 74.68MiB( 77%);   11.60MiB;     24330240;                5; 4×f32[1536,165,12], f32[253440,12]
+	 76.62MiB( 79%);    1.94MiB;      2030592;                9; 9×pred[1536,1322]
+	 78.56MiB( 81%);    1.94MiB;      4061184;                9; 9×pred[1536,1322]
+	 79.52MiB( 82%);   990.0KiB;      2027520;                4; 3×s32[1536,165], f32[1536,165]
+	 80.49MiB( 83%);   990.0KiB;      1013760;                6; s32[21504,2], 3×s32[1536,165], s32[21504,3], f32[1536,165]
+	 80.74MiB( 84%);   252.0KiB;     36495360;                1; s32[21504,3]
+	 80.98MiB( 84%);   252.0KiB;     37011456;                1; s32[21504,3]
+	 81.23MiB( 84%);   252.0KiB;     39591936;                1; s32[21504,3]
+	 81.48MiB( 84%);   252.0KiB;      1271808;                1; s32[21504,3]
+	 81.72MiB( 85%);   252.0KiB;     36753408;                2; 2×s32[21504,3]
+	 81.97MiB( 85%);   252.0KiB;      2304000;                1; s32[21504,3]
+	 82.21MiB( 85%);   252.0KiB;     54756864;                1; s32[21504,3]
+	 82.46MiB( 85%);   252.0KiB;     39849984;                1; s32[21504,3]
+	 82.71MiB( 86%);   252.0KiB;      1787904;                1; s32[21504,3]
+	 82.95MiB( 86%);   252.0KiB;      1529856;                1; s32[21504,3]
+	 83.20MiB( 86%);   252.0KiB;     38817792;                1; s32[21504,3]
+	 83.44MiB( 86%);   252.0KiB;     55014912;                3; s32[21504,3], 2×pred[1536,165]
+	 83.69MiB( 87%);   252.0KiB;     53982720;                1; s32[21504,3]
+	 83.94MiB( 87%);   252.0KiB;     38301696;                1; s32[21504,3]
+	 84.18MiB( 87%);   252.0KiB;     54498816;                1; s32[21504,3]
+	 84.43MiB( 88%);   252.0KiB;     40108032;                1; s32[21504,3]
+	 84.67MiB( 88%);   252.0KiB;     38043648;                1; s32[21504,3]
+	 84.92MiB( 88%);   252.0KiB;      2045952;                1; s32[21504,3]
+	 85.17MiB( 88%);   252.0KiB;     54240768;                2; 2×s32[21504,3]
+	 85.41MiB( 89%);   252.0KiB;      3078144;                1; s32[21504,3]
+	 85.66MiB( 89%);   252.0KiB;     37785600;                1; s32[21504,3]
+	 85.91MiB( 89%);   252.0KiB;     37269504;                1; s32[21504,3]
+	 86.15MiB( 89%);   252.0KiB;     38559744;                1; s32[21504,3]
+	 86.40MiB( 90%);   252.0KiB;      2562048;                1; s32[21504,3]
+	 86.64MiB( 90%);   252.0KiB;     37527552;                1; s32[21504,3]
+	 86.89MiB( 90%);   252.0KiB;     39333888;                1; s32[21504,3]
+	 87.14MiB( 90%);   252.0KiB;     55272960;                1; s32[21504,3]
+	 87.38MiB( 91%);   252.0KiB;     39075840;                1; s32[21504,3]
+	 87.63MiB( 91%);   252.0KiB;      2820096;                1; s32[21504,3]
+	 87.87MiB( 91%);   247.5KiB;     40619520;                2; 2×pred[1536,165]
+	 88.11MiB( 91%);   247.5KiB;      3041280;               19; 19×pred[1536,165]
+	 88.35MiB( 92%);   247.5KiB;     58318848;                9; 9×pred[1536,165]
+	 88.59MiB( 92%);   247.5KiB;     56291328;                8; 2×s32[1536,14], 2×s32[21504,2], 4×pred[1536,165]
+	 88.84MiB( 92%);   247.5KiB;     58572288;                9; 9×pred[1536,165]
+	 89.08MiB( 92%);   247.5KiB;     56037888;                1; pred[1536,165]
+	 89.32MiB( 93%);   247.5KiB;     56798208;               10; 9×pred[1536,165], pred[]
+	 89.56MiB( 93%);   247.5KiB;     40366080;                2; 2×pred[1536,165]
+	 89.80MiB( 93%);   247.5KiB;     57051648;                2; s32[21504,2], pred[1536,165]
+	 90.04MiB( 93%);   247.5KiB;     57558528;                1; pred[1536,165]
+	 90.29MiB( 94%);   247.5KiB;     57811968;                1; pred[1536,165]
+	 90.53MiB( 94%);   247.5KiB;     58065408;                9; 9×pred[1536,165]
+	 90.77MiB( 94%);   247.5KiB;     40872960;                2; 2×pred[1536,165]
+	 91.01MiB( 94%);   247.5KiB;     57305088;                1; pred[1536,165]
+	 91.25MiB( 95%);   247.5KiB;     55531008;                1; pred[1536,165]
+	 91.50MiB( 95%);   247.5KiB;     55784448;                2; s32[21504,2], pred[1536,165]
+	 91.74MiB( 95%);   247.5KiB;     56544768;                5; s32[1536,14], 4×pred[1536,165]
+	The rest 177 values are less than 5% of the total size and not shown.
+
+allocation 0: size 11.60MiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	 11.60MiB(100%);   11.60MiB;            0;               46; 5×s32[1536,165], 9×pred[1536,165], u32[2,1536], 13×f32[1536,165,12], 2×s32[1536,1,1], 10×s32[1536,14], u32[1,1536,2], f32[12,253440], s32[253440,2], 2×pred[], f32[253440,12]
+
+allocation 1: size 11.60MiB, parameter 1, shape |f32[1536,11,15,12]| at ShapeIndex {}:
+allocation 2: size 1.94MiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  1.94MiB(100%);    1.94MiB;            0;                5; 5×pred[1536,1322]
+
+allocation 3: size 1.94MiB, parameter 5, shape |pred[1536,1322]| at ShapeIndex {}:
+allocation 4: size 247.5KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	 247.5KiB(100%);   247.5KiB;            0;                5; 5×pred[1536,165]
+
+allocation 5: size 247.5KiB, parameter 8, shape |pred[1536,165]| at ShapeIndex {}:
+allocation 6: size 106.3KiB, constant:
+allocation 7: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;               16; s32[1536], 14×s32[1536,14], u32[2,1536]
+
+allocation 8: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                7; 6×s32[1536,14], pred[1536]
+
+allocation 9: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;               18; 16×s32[1536,14], 2×s32[1536,11]
+
+allocation 10: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                5; 5×s32[1536,14]
+
+allocation 11: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                6; pred[1536], 5×s32[1536,14]
+
+allocation 12: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                5; 5×s32[1536,14]
+
+allocation 13: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                6; 5×s32[1536,14], pred[1536]
+
+allocation 14: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                8; 6×s32[1536,14], 2×s32[1536,11]
+
+allocation 15: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                6; s32[1536,1,1], 5×s32[1536,14]
+
+allocation 16: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                9; 2×pred[], s32[1536,1,1], pred[1536], 5×s32[1536,14]
+
+allocation 17: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                6; 5×s32[1536,14], s32[1536]
+
+allocation 18: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                9; 3×f32[1536,14], 5×s32[1536,14], s32[1536,1,1]
+
+allocation 19: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                5; 5×s32[1536,14]
+
+allocation 20: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                5; 5×s32[1536,14]
+
+allocation 21: size 84.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  84.0KiB(100%);    84.0KiB;            0;                9; 4×f32[1536,14], 4×u32[1536,11], f32[21504]
+
+allocation 22: size 84.0KiB, parameter 10, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 23: size 84.0KiB, parameter 11, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 24: size 84.0KiB, parameter 12, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 25: size 84.0KiB, parameter 13, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 26: size 84.0KiB, parameter 14, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 27: size 84.0KiB, parameter 15, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 28: size 84.0KiB, parameter 16, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 29: size 84.0KiB, parameter 17, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 30: size 84.0KiB, parameter 18, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 31: size 84.0KiB, parameter 19, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 32: size 84.0KiB, parameter 20, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 33: size 84.0KiB, parameter 21, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 34: size 84.0KiB, parameter 23, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 35: size 84.0KiB, parameter 38, shape |s32[1536,14]| at ShapeIndex {}:
+allocation 36: size 84.0KiB, parameter 22, shape |f32[1536,14]| at ShapeIndex {}:
+allocation 37: size 26.6KiB, constant:
+allocation 38: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;               13; s32[1536,1,1], 10×pred[1536,14], 2×u32[2,1536]
+
+allocation 39: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;               16; u32[2,1536], s32[1536,1,1], 13×pred[1536,14], u32[1536]
+
+allocation 40: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 41: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 42: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 43: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                6; s32[1536,1], 5×pred[1536,14]
+
+allocation 44: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 45: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 46: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 47: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                6; 5×pred[1536,14], s32[1536]
+
+allocation 48: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                6; 5×pred[1536,14], s32[1536,2]
+
+allocation 49: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 50: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                5; 5×pred[1536,14]
+
+allocation 51: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                9; s32[1536,1,1], 7×pred[1536,14], s32[1536]
+
+allocation 52: size 21.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  21.0KiB(100%);    21.0KiB;            0;                8; s32[1536,2], 6×pred[1536,14], s32[1536]
+
+allocation 53: size 21.0KiB, parameter 9, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 54: size 21.0KiB, parameter 24, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 55: size 21.0KiB, parameter 25, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 56: size 21.0KiB, parameter 26, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 57: size 21.0KiB, parameter 27, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 58: size 21.0KiB, parameter 28, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 59: size 21.0KiB, parameter 29, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 60: size 21.0KiB, parameter 30, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 61: size 21.0KiB, parameter 31, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 62: size 21.0KiB, parameter 32, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 63: size 21.0KiB, parameter 33, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 64: size 21.0KiB, parameter 34, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 65: size 21.0KiB, parameter 35, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 66: size 21.0KiB, parameter 36, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 67: size 21.0KiB, parameter 37, shape |pred[1536,14]| at ShapeIndex {}:
+allocation 68: size 12.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	  12.0KiB(100%);    12.0KiB;            0;               21; 2×pred[1536,1,1], 4×u32[1536,2], 2×u32[2,1536], 6×f32[1536,2], f32[1536], u32[1,1536,2], 2×s32[1536], f32[3072], u32[1536], s32[1536,2]
+
+allocation 69: size 12.0KiB, parameter 2, shape |f32[1536,2]| at ShapeIndex {}:
+allocation 70: size 7.9KiB, constant:
+allocation 71: size 6.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	   6.0KiB(100%);     6.0KiB;            0;                5; 5×s32[1536]
+
+allocation 72: size 6.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	   6.0KiB(100%);     6.0KiB;            0;                5; 5×s32[1536]
+
+allocation 73: size 6.0KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	   6.0KiB(100%);     6.0KiB;            0;               13; u32[1536], 12×s32[1536]
+
+allocation 74: size 6.0KiB, parameter 0, shape |s32[1536]| at ShapeIndex {}:
+allocation 75: size 6.0KiB, parameter 6, shape |s32[1536]| at ShapeIndex {}:
+allocation 76: size 6.0KiB, parameter 7, shape |s32[1536]| at ShapeIndex {}:
+allocation 77: size 3.9KiB, constant:
+allocation 78: size 1.5KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	   1.5KiB(100%);     1.5KiB;            0;                5; 5×pred[1536]
+
+allocation 79: size 1.5KiB, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	   1.5KiB(100%);     1.5KiB;            0;                5; 5×pred[1536]
+
+allocation 80: size 1.5KiB, parameter 3, shape |pred[1536]| at ShapeIndex {}:
+allocation 81: size 1.5KiB, parameter 4, shape |pred[1536]| at ShapeIndex {}:
+allocation 82: size 990B, constant:
+allocation 84: size 660B, constant:
+allocation 85: size 660B, constant:
+allocation 86: size 660B, constant:
+allocation 87: size 660B, constant:
+allocation 88: size 660B, constant:
+allocation 89: size 660B, constant:
+allocation 90: size 660B, constant:
+allocation 91: size 660B, constant:
+allocation 92: size 660B, constant:
+allocation 93: size 660B, constant:
+allocation 94: size 660B, constant:
+allocation 95: size 660B, constant:
+allocation 96: size 660B, constant:
+allocation 98: size 328B, output shape is |(s32[1536], f32[1536,11,15,12], f32[1536,2], pred[1536], pred[1536], /*index=5*/pred[1536,1322], s32[1536], s32[1536], pred[1536,165], pred[1536,14], /*index=10*/s32[1536,14], s32[1536,14], s32[1536,14], s32[1536,14], s32[1536,14], /*index=15*/s32[1536,14], s32[1536,14], s32[1536,14], s32[1536,14], s32[1536,14], /*index=20*/s32[1536,14], s32[1536,14], f32[1536,14], s32[1536,14], pred[1536,14], /*index=25*/pred[1536,14], pred[1536,14], pred[1536,14], pred[1536,14], pred[1536,14], /*index=30*/pred[1536,14], pred[1536,14], pred[1536,14], pred[1536,14], pred[1536,14], /*index=35*/pred[1536,14], pred[1536,14], pred[1536,14], s32[1536,14], u8[1536,0], /*index=40*/u32[2])|, maybe-live-out:
+allocation 103: size 165B, constant:
+allocation 104: size 165B, constant:
+allocation 105: size 165B, constant:
+allocation 106: size 165B, constant:
+allocation 107: size 165B, constant:
+allocation 108: size 165B, constant:
+allocation 170: size 16B, thread-local:
+allocation 171: size 16B, thread-local:
+allocation 172: size 16B, thread-local:
+allocation 173: size 16B, thread-local:
+allocation 160: size 8B, maybe-live-out:
+
+	cumulative_size;       size;       offset; used_by_n_values; shapes_list
+	------------------------------------------------------------
+	       8B(100%);         8B;            0;               27; pred[], u32[1,2], 4×u32[2], u32[], 20×s32[]
+
+allocation 161: size 8B, parameter 40, shape |u32[2]| at ShapeIndex {}:
+allocation 162: size 8B, constant:
+allocation 163: size 8B, constant:
+allocation 164: size 4B, constant:
+allocation 165: size 4B, constant:
+allocation 174: size 4B, thread-local:
+allocation 175: size 4B, thread-local:
+allocation 176: size 4B, thread-local:
+allocation 177: size 4B, thread-local:
+allocation 178: size 4B, thread-local:
+allocation 179: size 4B, thread-local:
+allocation 180: size 4B, thread-local:
+allocation 181: size 4B, thread-local:
+allocation 182: size 4B, thread-local:
+allocation 183: size 4B, thread-local:
+allocation 184: size 4B, thread-local:
+allocation 185: size 4B, thread-local:
+allocation 186: size 4B, thread-local:
+allocation 187: size 4B, thread-local:
+allocation 188: size 4B, thread-local:
+allocation 189: size 4B, thread-local:
+allocation 190: size 4B, thread-local:
+allocation 191: size 4B, thread-local:
+allocation 192: size 4B, thread-local:
+allocation 193: size 4B, thread-local:
+allocation 194: size 4B, thread-local:
+allocation 195: size 4B, thread-local:
+allocation 196: size 4B, thread-local:
+allocation 197: size 4B, thread-local:
+allocation 198: size 4B, thread-local:
+allocation 199: size 4B, thread-local:
+allocation 200: size 4B, thread-local:
+allocation 201: size 4B, thread-local:
+allocation 202: size 4B, thread-local:
+allocation 203: size 4B, thread-local:
+allocation 204: size 4B, thread-local:
+allocation 205: size 4B, thread-local:
+allocation 206: size 4B, thread-local:
+allocation 207: size 4B, thread-local:
+allocation 208: size 4B, thread-local:
+allocation 209: size 4B, thread-local:
+allocation 210: size 4B, thread-local:
+allocation 211: size 4B, thread-local:
+allocation 212: size 4B, thread-local:
+allocation 213: size 4B, thread-local:
+allocation 214: size 4B, thread-local:
+allocation 215: size 4B, thread-local:
+allocation 216: size 4B, thread-local:
+allocation 217: size 4B, thread-local:
+allocation 218: size 4B, thread-local:
+allocation 219: size 4B, thread-local:
+allocation 220: size 4B, thread-local:
+allocation 221: size 4B, thread-local:
+allocation 222: size 4B, thread-local:
+allocation 223: size 4B, thread-local:
+allocation 224: size 4B, thread-local:
+allocation 225: size 4B, thread-local:
+allocation 226: size 4B, thread-local:
+allocation 227: size 4B, thread-local:
+allocation 228: size 4B, thread-local:
+allocation 229: size 4B, thread-local:
+allocation 230: size 4B, thread-local:
+allocation 231: size 4B, thread-local:
+allocation 232: size 4B, thread-local:
+allocation 233: size 4B, thread-local:
+allocation 234: size 4B, thread-local:
+allocation 235: size 4B, thread-local:
+allocation 236: size 4B, thread-local:
+allocation 237: size 4B, thread-local:
+allocation 238: size 4B, thread-local:
+allocation 239: size 4B, thread-local:
+allocation 240: size 4B, thread-local:
+allocation 241: size 4B, thread-local:
+allocation 242: size 4B, thread-local:
+allocation 243: size 4B, thread-local:
+allocation 244: size 4B, thread-local:
+allocation 245: size 4B, thread-local:
+allocation 246: size 4B, thread-local:
+allocation 247: size 4B, thread-local:
+allocation 248: size 4B, thread-local:
+allocation 249: size 4B, thread-local:
+allocation 250: size 4B, thread-local:
+allocation 251: size 4B, thread-local:
+allocation 252: size 4B, thread-local:
+allocation 253: size 4B, thread-local:
+allocation 254: size 4B, thread-local:
+allocation 255: size 4B, thread-local:
+allocation 256: size 4B, thread-local:
+allocation 257: size 4B, thread-local:
+allocation 258: size 4B, thread-local:
+allocation 259: size 4B, thread-local:
+allocation 260: size 4B, thread-local:
+allocation 261: size 4B, thread-local:
+allocation 262: size 4B, thread-local:
+allocation 263: size 4B, thread-local:
+allocation 264: size 4B, thread-local:
+allocation 265: size 4B, thread-local:
+allocation 266: size 4B, thread-local:
+allocation 267: size 4B, thread-local:
+allocation 268: size 4B, thread-local:
+allocation 269: size 4B, thread-local:
+allocation 270: size 4B, thread-local:
+allocation 271: size 4B, thread-local:
+allocation 272: size 4B, thread-local:
+allocation 273: size 4B, thread-local:
+allocation 274: size 4B, thread-local:
+allocation 275: size 4B, thread-local:
+allocation 276: size 4B, thread-local:
+allocation 277: size 4B, thread-local:
+allocation 278: size 4B, thread-local:
+allocation 279: size 4B, thread-local:
+allocation 280: size 4B, thread-local:
+allocation 281: size 4B, thread-local:
+allocation 282: size 4B, thread-local:
+allocation 283: size 4B, thread-local:
+allocation 284: size 4B, thread-local:
+allocation 285: size 4B, thread-local:
+allocation 286: size 4B, thread-local:
+allocation 287: size 4B, thread-local:
+allocation 288: size 4B, thread-local:
+allocation 289: size 4B, thread-local:
+allocation 290: size 4B, thread-local:
+allocation 291: size 4B, thread-local:
+allocation 292: size 4B, thread-local:
+allocation 293: size 4B, thread-local:
+allocation 294: size 4B, thread-local:
+allocation 295: size 4B, thread-local:
+allocation 296: size 4B, thread-local:
+allocation 297: size 4B, thread-local:
+allocation 298: size 4B, thread-local:
+allocation 299: size 4B, thread-local:
+allocation 300: size 4B, thread-local:
+allocation 301: size 4B, thread-local:
+allocation 302: size 4B, thread-local:
+allocation 303: size 4B, thread-local:
+allocation 304: size 4B, thread-local:
+allocation 305: size 4B, thread-local:
+allocation 306: size 4B, thread-local:
+allocation 307: size 4B, thread-local:
+allocation 308: size 4B, thread-local:
+allocation 309: size 4B, thread-local:
+allocation 310: size 4B, thread-local:
+allocation 311: size 4B, thread-local:
+allocation 312: size 4B, thread-local:
+allocation 313: size 4B, thread-local:
+allocation 314: size 4B, thread-local:
+allocation 315: size 4B, thread-local:
+allocation 316: size 4B, thread-local:
+allocation 317: size 4B, thread-local:
+allocation 318: size 4B, thread-local:
+allocation 319: size 4B, thread-local:
+allocation 320: size 4B, thread-local:
+allocation 321: size 4B, thread-local:
+allocation 322: size 4B, thread-local:
+allocation 323: size 4B, thread-local:
+allocation 324: size 4B, thread-local:
+allocation 325: size 4B, thread-local:
+allocation 326: size 4B, thread-local:
+allocation 327: size 4B, thread-local:
+allocation 328: size 4B, thread-local:
+allocation 329: size 4B, thread-local:
+allocation 330: size 4B, thread-local:
+allocation 331: size 4B, thread-local:
+allocation 332: size 4B, thread-local:
+allocation 333: size 4B, thread-local:
+allocation 334: size 4B, thread-local:
+allocation 335: size 4B, thread-local:
+allocation 336: size 4B, thread-local:
+allocation 337: size 4B, thread-local:
+allocation 338: size 4B, thread-local:
+allocation 339: size 4B, thread-local:
+allocation 340: size 4B, thread-local:
+allocation 341: size 4B, thread-local:
+allocation 342: size 4B, thread-local:
+allocation 343: size 4B, thread-local:
+allocation 344: size 4B, thread-local:
+allocation 345: size 4B, thread-local:
+allocation 346: size 4B, thread-local:
+allocation 347: size 4B, thread-local:
+allocation 348: size 4B, thread-local:
+allocation 349: size 4B, thread-local:
+allocation 350: size 4B, thread-local:
+allocation 351: size 4B, thread-local:
+allocation 352: size 4B, thread-local:
+allocation 353: size 4B, thread-local:
+allocation 354: size 4B, thread-local:
+allocation 355: size 4B, thread-local:
+allocation 356: size 4B, thread-local:
+allocation 357: size 4B, thread-local:
+allocation 358: size 4B, thread-local:
+allocation 359: size 4B, thread-local:
+allocation 360: size 4B, thread-local:
+allocation 361: size 4B, thread-local:
+allocation 362: size 4B, thread-local:
+allocation 363: size 4B, thread-local:
+allocation 364: size 4B, thread-local:
+allocation 365: size 4B, thread-local:
+allocation 366: size 4B, thread-local:
+allocation 367: size 4B, thread-local:
+allocation 368: size 4B, thread-local:
+allocation 369: size 4B, thread-local:
+allocation 370: size 4B, thread-local:
+allocation 371: size 4B, thread-local:
+allocation 372: size 4B, thread-local:
+allocation 373: size 4B, thread-local:
+allocation 374: size 4B, thread-local:
+allocation 375: size 4B, thread-local:
+allocation 376: size 4B, thread-local:
+allocation 377: size 4B, thread-local:
+allocation 378: size 4B, thread-local:
+allocation 379: size 4B, thread-local:
+allocation 380: size 4B, thread-local:
+allocation 381: size 4B, thread-local:
+allocation 382: size 4B, thread-local:
+allocation 383: size 4B, thread-local:
+allocation 384: size 4B, thread-local:
+allocation 385: size 4B, thread-local:
+allocation 386: size 4B, thread-local:
+allocation 387: size 4B, thread-local:
+allocation 388: size 4B, thread-local:
+allocation 389: size 4B, constant:
+allocation 390: size 4B, constant:
+allocation 391: size 4B, thread-local:
+allocation 392: size 4B, thread-local:
+allocation 393: size 4B, thread-local:
+allocation 394: size 4B, constant:
+allocation 395: size 4B, constant:
+allocation 396: size 4B, thread-local:
+allocation 397: size 4B, thread-local:
+allocation 398: size 4B, thread-local:
+allocation 399: size 4B, thread-local:
+allocation 400: size 4B, thread-local:
+allocation 401: size 4B, thread-local:
+allocation 402: size 4B, thread-local:
+allocation 403: size 4B, thread-local:
+allocation 404: size 4B, thread-local:
+allocation 405: size 4B, thread-local:
+allocation 406: size 4B, thread-local:
+allocation 407: size 4B, thread-local:
+allocation 408: size 4B, thread-local:
+allocation 409: size 4B, thread-local:
+allocation 410: size 4B, thread-local:
+allocation 411: size 4B, thread-local:
+allocation 412: size 4B, thread-local:
+allocation 413: size 4B, thread-local:
+allocation 414: size 4B, thread-local:
+allocation 415: size 4B, thread-local:
+allocation 416: size 4B, thread-local:
+allocation 417: size 4B, thread-local:
+allocation 418: size 4B, thread-local:
+allocation 419: size 4B, thread-local:
+allocation 420: size 4B, thread-local:
+allocation 421: size 4B, thread-local:
+allocation 422: size 4B, thread-local:
+allocation 423: size 4B, thread-local:
+allocation 83: size 1B, thread-local:
+allocation 97: size 1B, thread-local:
+allocation 99: size 1B, thread-local:
+allocation 100: size 1B, thread-local:
+allocation 101: size 1B, thread-local:
+allocation 102: size 1B, thread-local:
+allocation 109: size 1B, thread-local:
+allocation 110: size 1B, thread-local:
+allocation 111: size 1B, thread-local:
+allocation 112: size 1B, thread-local:
+allocation 113: size 1B, thread-local:
+allocation 114: size 1B, thread-local:
+allocation 115: size 1B, thread-local:
+allocation 116: size 1B, thread-local:
+allocation 117: size 1B, thread-local:
+allocation 118: size 1B, thread-local:
+allocation 119: size 1B, thread-local:
+allocation 120: size 1B, thread-local:
+allocation 121: size 1B, thread-local:
+allocation 122: size 1B, thread-local:
+allocation 123: size 1B, thread-local:
+allocation 124: size 1B, thread-local:
+allocation 125: size 1B, thread-local:
+allocation 126: size 1B, thread-local:
+allocation 127: size 1B, thread-local:
+allocation 128: size 1B, thread-local:
+allocation 129: size 1B, thread-local:
+allocation 130: size 1B, thread-local:
+allocation 131: size 1B, thread-local:
+allocation 132: size 1B, thread-local:
+allocation 133: size 1B, thread-local:
+allocation 134: size 1B, thread-local:
+allocation 135: size 1B, thread-local:
+allocation 136: size 1B, thread-local:
+allocation 137: size 1B, thread-local:
+allocation 138: size 1B, thread-local:
+allocation 139: size 1B, thread-local:
+allocation 140: size 1B, thread-local:
+allocation 141: size 1B, thread-local:
+allocation 142: size 1B, thread-local:
+allocation 143: size 1B, thread-local:
+allocation 144: size 1B, thread-local:
+allocation 145: size 1B, thread-local:
+allocation 146: size 1B, thread-local:
+allocation 147: size 1B, thread-local:
+allocation 148: size 1B, thread-local:
+allocation 149: size 1B, thread-local:
+allocation 150: size 1B, thread-local:
+allocation 151: size 1B, thread-local:
+allocation 152: size 1B, thread-local:
+allocation 153: size 1B, thread-local:
+allocation 154: size 1B, thread-local:
+allocation 155: size 1B, thread-local:
+allocation 156: size 1B, thread-local:
+allocation 157: size 1B, thread-local:
+allocation 158: size 1B, thread-local:
+allocation 159: size 1B, thread-local:
+allocation 169: size 1B, thread-local:
+allocation 424: size 1B, thread-local:
+allocation 425: size 1B, thread-local:
+allocation 426: size 1B, thread-local:
+allocation 427: size 1B, thread-local:
+allocation 428: size 1B, thread-local:
+allocation 429: size 1B, thread-local:
+allocation 430: size 1B, thread-local:
+allocation 431: size 1B, thread-local:
+allocation 432: size 1B, thread-local:
+allocation 433: size 1B, thread-local:
+allocation 434: size 1B, thread-local:
+allocation 435: size 1B, thread-local:
+allocation 436: size 1B, thread-local:
+allocation 437: size 1B, thread-local:
+allocation 438: size 1B, thread-local:
+allocation 439: size 1B, thread-local:
+allocation 440: size 1B, thread-local:
+allocation 441: size 1B, thread-local:
+allocation 442: size 1B, thread-local:
+allocation 443: size 1B, thread-local:
+allocation 444: size 1B, thread-local:
+allocation 445: size 1B, thread-local:
+allocation 446: size 1B, thread-local:
+allocation 447: size 1B, thread-local:
+allocation 448: size 1B, thread-local:
+allocation 449: size 1B, thread-local:
+allocation 450: size 1B, thread-local:
+allocation 451: size 1B, thread-local:
+allocation 452: size 1B, thread-local:
+allocation 453: size 1B, thread-local:
+allocation 454: size 1B, thread-local:
+allocation 455: size 1B, thread-local:
+allocation 456: size 1B, thread-local:
+allocation 457: size 1B, thread-local:
+allocation 458: size 1B, thread-local:
+allocation 459: size 1B, thread-local:
+allocation 460: size 1B, thread-local:
+allocation 461: size 1B, thread-local:
+allocation 462: size 1B, thread-local:
+allocation 463: size 1B, thread-local:
+allocation 464: size 1B, thread-local:
+allocation 465: size 1B, thread-local:
+allocation 466: size 1B, thread-local:
+allocation 467: size 1B, thread-local:
+allocation 468: size 1B, thread-local:
+allocation 469: size 1B, thread-local:
+allocation 470: size 1B, thread-local:
+allocation 471: size 1B, thread-local:
+allocation 472: size 1B, thread-local:
+allocation 473: size 1B, thread-local:
+allocation 474: size 1B, thread-local:
+allocation 475: size 1B, thread-local:
+allocation 476: size 1B, thread-local:
+allocation 477: size 1B, thread-local:
+allocation 478: size 1B, thread-local:
+allocation 479: size 1B, thread-local:
+allocation 480: size 1B, thread-local:
+allocation 481: size 1B, thread-local:
+allocation 482: size 1B, thread-local:
+allocation 483: size 1B, thread-local:
+allocation 484: size 1B, thread-local:
+allocation 485: size 1B, thread-local:
+allocation 486: size 1B, thread-local:
+allocation 487: size 1B, thread-local:
+allocation 488: size 1B, thread-local:
+allocation 489: size 1B, thread-local:
+allocation 490: size 1B, thread-local:
+allocation 491: size 1B, thread-local:
+allocation 492: size 1B, thread-local:
+allocation 493: size 1B, thread-local:
+allocation 494: size 1B, thread-local:
+allocation 495: size 1B, thread-local:
+allocation 496: size 1B, thread-local:
+allocation 497: size 1B, thread-local:
+allocation 498: size 1B, thread-local:
+allocation 499: size 1B, thread-local:
+allocation 500: size 1B, thread-local:
+allocation 501: size 1B, thread-local:
+allocation 502: size 1B, thread-local:
+allocation 503: size 1B, thread-local:
+allocation 504: size 1B, thread-local:
+allocation 505: size 1B, thread-local:
+allocation 506: size 1B, thread-local:
+allocation 507: size 1B, thread-local:
+allocation 508: size 1B, thread-local:
+allocation 509: size 1B, thread-local:
+allocation 510: size 1B, thread-local:
+allocation 511: size 1B, thread-local:
+allocation 512: size 1B, thread-local:
+allocation 513: size 1B, thread-local:
+allocation 514: size 1B, thread-local:
+allocation 515: size 1B, thread-local:
+allocation 516: size 1B, thread-local:
+allocation 517: size 1B, thread-local:
+allocation 518: size 1B, thread-local:
+allocation 519: size 1B, thread-local:
+allocation 520: size 1B, thread-local:
+allocation 521: size 1B, thread-local:
+allocation 522: size 1B, thread-local:
+allocation 523: size 1B, thread-local:
+allocation 524: size 1B, thread-local:
+allocation 525: size 1B, thread-local:
+allocation 526: size 1B, thread-local:
+allocation 527: size 1B, thread-local:
+allocation 528: size 1B, thread-local:
+allocation 529: size 1B, thread-local:
+allocation 530: size 1B, thread-local:
+allocation 531: size 1B, thread-local:
+allocation 532: size 1B, thread-local:
+allocation 533: size 1B, thread-local:
+allocation 534: size 1B, thread-local:
+allocation 535: size 1B, thread-local:
+allocation 536: size 1B, thread-local:
+allocation 537: size 1B, thread-local:
+allocation 538: size 1B, thread-local:
+allocation 539: size 1B, thread-local:
+allocation 540: size 1B, thread-local:
+allocation 541: size 1B, thread-local:
+allocation 542: size 1B, thread-local:
+allocation 543: size 1B, thread-local:
+allocation 544: size 1B, thread-local:
+allocation 545: size 1B, thread-local:
+allocation 546: size 1B, thread-local:
+allocation 547: size 1B, thread-local:
+allocation 548: size 1B, thread-local:
+allocation 549: size 1B, thread-local:
+allocation 550: size 1B, thread-local:
+allocation 551: size 1B, thread-local:
+allocation 552: size 1B, thread-local:
+allocation 553: size 1B, thread-local:
+allocation 554: size 1B, thread-local:
+allocation 555: size 1B, thread-local:
+allocation 556: size 1B, thread-local:
+allocation 557: size 1B, thread-local:
+allocation 558: size 1B, thread-local:
+allocation 559: size 1B, thread-local:
+allocation 560: size 1B, thread-local:
+allocation 561: size 1B, thread-local:
+allocation 562: size 1B, thread-local:
+allocation 563: size 1B, thread-local:
+allocation 564: size 1B, thread-local:
+allocation 565: size 1B, thread-local:
+allocation 566: size 1B, thread-local:
+allocation 567: size 1B, thread-local:
+allocation 568: size 1B, thread-local:
+allocation 569: size 1B, thread-local:
+allocation 570: size 1B, thread-local:
+allocation 571: size 1B, thread-local:
+allocation 572: size 1B, thread-local:
+allocation 573: size 1B, thread-local:
+allocation 574: size 1B, thread-local:
+allocation 575: size 1B, thread-local:
+allocation 576: size 1B, thread-local:
+allocation 577: size 1B, thread-local:
+allocation 578: size 1B, thread-local:
+allocation 579: size 1B, thread-local:
+allocation 580: size 1B, thread-local:
+allocation 581: size 1B, thread-local:
+allocation 582: size 1B, thread-local:
+allocation 583: size 1B, thread-local:
+allocation 584: size 1B, thread-local:
+allocation 585: size 1B, thread-local:
+allocation 586: size 1B, thread-local:
+allocation 587: size 1B, thread-local:
+allocation 588: size 1B, thread-local:
+allocation 589: size 1B, thread-local:
+allocation 590: size 1B, thread-local:
+allocation 591: size 1B, thread-local:
+allocation 592: size 1B, thread-local:
+allocation 593: size 1B, thread-local:
+allocation 594: size 1B, thread-local:
+allocation 595: size 1B, thread-local:
+allocation 596: size 1B, thread-local:
+allocation 597: size 1B, thread-local:
+allocation 598: size 1B, thread-local:
+allocation 599: size 1B, thread-local:
+allocation 600: size 1B, thread-local:
+allocation 601: size 1B, thread-local:
+allocation 602: size 1B, thread-local:
+allocation 603: size 1B, thread-local:
+allocation 604: size 1B, thread-local:
+allocation 605: size 1B, thread-local:
+allocation 606: size 1B, thread-local:
+allocation 607: size 1B, thread-local:
+allocation 608: size 1B, thread-local:
+allocation 609: size 1B, thread-local:
+allocation 610: size 1B, thread-local:
+allocation 166: size 0B, maybe-live-out:
+allocation 167: size 0B, parameter 39, shape |u8[1536,0]| at ShapeIndex {}:
+allocation 168: size 0B, constant:

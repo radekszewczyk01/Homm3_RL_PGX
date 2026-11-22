@@ -1,0 +1,44 @@
+==============================================================================
+  host            f03b80b0be44
+  timestamp       2026-11-14T19:08:11+00:00
+  platform        gpu
+  device_kind     NVIDIA RTX 5000 Ada Generation
+  n_devices       1
+  cuda_visible    0
+  cpu             AMD EPYC 7F72 24-Core Processor
+  cpu_cores       48
+  gpus            ['NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04', 'NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04', 'NVIDIA RTX 5000 Ada Generation / 32760 / 580.178.04']
+  jax_version     0.6.2
+  python          3.10.12
+  preallocate     (domyslne = true)
+  [pula] 101 stworow  (2hex 24, strzelcy 30, latacze 18, oddech 2, dookolny 0)
+==============================================================================
+
+[1/3] Kroki symulacji (100 krokow na pomiar)
+   wsad       kroki/s     czas     std  compile   B/stan     zbior    GB/s    %BW
+    684       138,206    0.495  0.0011     15.4   15,719     20.5M     1.4   0.24
+   1024       158,231    0.647  0.0004     14.2   15,719     30.7M     1.6   0.28
+   1365       159,817    0.854  0.0008     14.2   15,719     40.9M     1.6   0.28
+   1450       164,879    0.879  0.0003     14.2   15,719     43.5M     1.6   0.29
+   1536       170,970    0.898  0.0007     14.4   15,719     46.0M     1.7   0.30
+   1622       167,673    0.967  0.0007     14.3   15,719     48.6M     1.7   0.29
+   1708       170,089    1.004  0.0005     14.5   15,719     51.2M     1.7   0.30
+   1877       168,071    1.117  0.0018     14.3   15,719     56.3M     1.7   0.29
+   2048       178,011    1.151  0.0007     14.6   15,719     61.4M     1.8   0.31
+   2729       168,646    1.618  0.0012     14.5   15,719     81.8M     1.7   0.29
+
+==============================================================================
+Szczyt krokow:        178,011 /s przy wsadzie 2048
+Rozmiar stanu:         15,719 B (rozrzut 0.0 B)
+Zbior roboczy (argumenty + wyjscie), MiB:
+  684:21  1024:31  1365:41  1450:43  1536:46  1622:49  1708:51  1877:56  2048:61  2729:82
+  L2 tej karty: 72 MiB. Prog wydajnosci
+  powinien wypasc tam, gdzie zbior roboczy wraz z buforami
+  tymczasowymi przestaje sie w niej miescic.
+Pasmo pamieci:           0.29 % szczytowego (576 GB/s)
+Moc oblicz.:              0.8 GFLOP/s
+Diagnoza:       ograniczenie latencja lancucha zaleznosci (pasmo i moc wykorzystane w znikomym stopniu)
+
+  !! Zbior cudzych procesow zmienil sie w trakcie pomiaru.
+
+Zapisano /work/stan/tput_5240.json

@@ -1,0 +1,5 @@
+[pula] 101 stworow  (2hex 24, strzelcy 30, latacze 18, oddech 2, dookolny 0)
+urzadzenia: [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2)]  par: 128  symulacji: 100
+gumbel-m16_s0[siec]                vs gumbel-m16-bez_s0[siec]            wsk 0.589  partii 224  nieskonczonych 32
+
+zapisano analiza_dl/turniej.json oraz turniej.csv (1 pojedynkow lacznie)

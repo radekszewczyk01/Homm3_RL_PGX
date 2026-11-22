@@ -1,0 +1,45 @@
+#indexing_map = #xla.indexing_map<"(pid_0) -> (pid_0 * 64), domain: pid_0 in [0, 23]">
+module {
+  func.func @fusion_1797_impl(%arg0: tensor<1536x14xf32>, %arg1: tensor<1536x14xi32>, %arg2: tensor<1536x14xi32>, %arg3: tensor<1536xi8>, %arg4: tensor<1536x14xi8>, %arg5: tensor<1536x14xi8>, %arg6: tensor<1536x14xf32>) -> tensor<1536x14xf32> {
+    %cst = arith.constant dense<1.000000e+00> : tensor<64xf32>
+    %cst_0 = arith.constant dense<0.000000e+00> : tensor<64x16xf32>
+    %cst_1 = arith.constant dense<14> : tensor<64x16xi32>
+    %0 = tt.get_program_id x : i32
+    %1 = arith.extsi %0 : i32 to i64
+    %2 = arith.index_castui %1 : i64 to index
+    %3 = xla.apply_indexing #indexing_map(%2)
+    %extracted_tile = triton_xla.extract %arg3[%3] [64] [1] {layout = array<i64: 0>} : tensor<1536xi8> to tensor<64xi8>
+    %4 = arith.trunci %extracted_tile : tensor<64xi8> to tensor<64xi1>
+    %5 = tt.expand_dims %4 {axis = 1 : i32} : tensor<64xi1> -> tensor<64x1xi1>
+    %6 = tt.broadcast %5 : tensor<64x1xi1> -> tensor<64x16xi1>
+    %extracted_tile_2 = triton_xla.extract %arg4[%3, 0] [64, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<1536x14xi8> to tensor<64x16xi8>
+    %7 = arith.trunci %extracted_tile_2 : tensor<64x16xi8> to tensor<64x16xi1>
+    %extracted_tile_3 = triton_xla.extract %arg5[%3, 0] [64, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<1536x14xi8> to tensor<64x16xi8>
+    %8 = arith.trunci %extracted_tile_3 : tensor<64x16xi8> to tensor<64x16xi1>
+    %9 = arith.select %6, %7, %8 : tensor<64x16xi1>, tensor<64x16xi1>
+    %extracted_tile_4 = triton_xla.extract %arg1[%3, 0] [64, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<1536x14xi32> to tensor<64x16xi32>
+    %extracted_tile_5 = triton_xla.extract %arg2[%3, 0] [64, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<1536x14xi32> to tensor<64x16xi32>
+    %10 = arith.select %6, %extracted_tile_4, %extracted_tile_5 : tensor<64x16xi1>, tensor<64x16xi32>
+    %11 = arith.sitofp %10 : tensor<64x16xi32> to tensor<64x16xf32>
+    %extracted_tile_6 = triton_xla.extract %arg0[%3, 0] [64, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<1536x14xf32> to tensor<64x16xf32>
+    %12 = arith.mulf %11, %extracted_tile_6 : tensor<64x16xf32>
+    %13 = arith.select %9, %12, %cst_0 : tensor<64x16xi1>, tensor<64x16xf32>
+    %14 = tt.make_range {end = 16 : i32, start = 0 : i32} : tensor<16xi32>
+    %15 = tt.expand_dims %14 {axis = 0 : i32} : tensor<16xi32> -> tensor<1x16xi32>
+    %16 = tt.broadcast %15 : tensor<1x16xi32> -> tensor<64x16xi32>
+    %17 = arith.cmpi slt, %16, %cst_1 : tensor<64x16xi32>
+    %18 = arith.select %17, %13, %cst_0 : tensor<64x16xi1>, tensor<64x16xf32>
+    %19 = "tt.reduce"(%18) <{axis = 1 : i32}> ({
+    ^bb0(%arg7: f32, %arg8: f32):
+      %25 = arith.addf %arg7, %arg8 : f32
+      tt.reduce.return %25 : f32
+    }) : (tensor<64x16xf32>) -> tensor<64xf32>
+    %20 = arith.maximumf %19, %cst : tensor<64xf32>
+    %21 = tt.expand_dims %20 {axis = 1 : i32} : tensor<64xf32> -> tensor<64x1xf32>
+    %22 = tt.broadcast %21 : tensor<64x1xf32> -> tensor<64x16xf32>
+    %23 = arith.divf %13, %22 : tensor<64x16xf32>
+    %24 = arith.select %9, %23, %cst_0 : tensor<64x16xi1>, tensor<64x16xf32>
+    %inserted_tile = triton_xla.insert %24 into %arg6[%3, 0] [64, 16] [1, 1] {layout = array<i64: 1, 0>} : tensor<64x16xf32> into tensor<1536x14xf32>
+    return %inserted_tile : tensor<1536x14xf32>
+  }
+}

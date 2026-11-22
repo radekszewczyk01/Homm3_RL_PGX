@@ -1,0 +1,32 @@
+BufferAssignment:
+allocation 0: size 108900, output shape is |s32[165,165]|, maybe-live-out:
+ value: <1 copy.1 @0> (size=108900,offset=0): s32[165,165]{1,0}
+allocation 1: size 108900, parameter 0, shape |s32[165,165]| at ShapeIndex {}:
+ value: <0 Arg_0.1 @0> (size=108900,offset=0): s32[165,165]{1,0}
+
+Total bytes used: 217800 (212.7KiB)
+
+Used values:
+<0 Arg_0.1 @0>
+ positions:
+  Arg_0.1
+ uses:
+  copy.1, operand 0
+ from instruction: %Arg_0.1 = s32[165,165]{1,0} parameter(0), metadata={op_name="args[0]"}
+<1 copy.1 @0>
+ positions:
+  copy.1
+ uses:
+ from instruction: %copy.1 = s32[165,165]{1,0} copy(%Arg_0.1)
+
+
+HloLiveRange (max 2):
+  InstructionSequence:
+    0:Arg_0.1
+    1:copy.1
+  BufferLiveRange:
+    Arg_0.1{}:0-2
+    copy.1{}:1-2
+  Live ranges at 1 (peak):
+    Arg_0.1{}: 108900 bytes (cumulative: 108900 bytes)
+    copy.1{}: 108900 bytes (cumulative: 217800 bytes)

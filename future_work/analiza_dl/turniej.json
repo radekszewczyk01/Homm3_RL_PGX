@@ -1,0 +1,10 @@
+[
+  {
+    "wskaznik_zwyciestw": 0.5893,
+    "partii_rozegranych": 224,
+    "partii_nieskonczonych": 32,
+    "par_rozstrzygnietych": 0.1797,
+    "a": "gumbel-m16_s0[siec]",
+    "b": "gumbel-m16-bez_s0[siec]"
+  }
+]

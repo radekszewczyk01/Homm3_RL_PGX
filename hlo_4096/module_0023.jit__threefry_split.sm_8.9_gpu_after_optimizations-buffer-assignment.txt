@@ -1,0 +1,32 @@
+BufferAssignment:
+allocation 0: size 32768, output shape is |u32[4096,2]|, maybe-live-out:
+ value: <165 input_concatenate_fusion @0> (size=32768,offset=0): u32[4096,2]{1,0}
+allocation 1: size 8, parameter 0, shape |u32[2]| at ShapeIndex {}:
+ value: <164 Arg_0.1 @0> (size=8,offset=0): u32[2]{0}
+
+Total bytes used: 32776 (32.0KiB)
+
+Used values:
+<164 Arg_0.1 @0>
+ positions:
+  Arg_0.1
+ uses:
+  input_concatenate_fusion, operand 0
+ from instruction: %Arg_0.1 = u32[2]{0} parameter(0), metadata={op_name="key"}
+<165 input_concatenate_fusion @0>
+ positions:
+  input_concatenate_fusion
+ uses:
+ from instruction: %input_concatenate_fusion = u32[4096,2]{1,0} fusion(%Arg_0.1), kind=kInput, calls=%fused_concatenate, metadata={op_name="jit(_threefry_split)/jit(main)/concatenate" source_file="/work/src/benchark.py" source_line=282}
+
+
+HloLiveRange (max 2):
+  InstructionSequence:
+    0:Arg_0.1
+    1:input_concatenate_fusion
+  BufferLiveRange:
+    Arg_0.1{}:0-2
+    input_concatenate_fusion{}:1-2
+  Live ranges at 1 (peak):
+    input_concatenate_fusion{}: 32768 bytes (cumulative: 32768 bytes)
+    Arg_0.1{}: 8 bytes (cumulative: 32776 bytes)

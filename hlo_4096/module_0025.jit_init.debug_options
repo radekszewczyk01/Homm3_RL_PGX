@@ -1,0 +1,4 @@
+xla_cpu_enable_fast_min_max: false
+xla_gpu_cuda_data_dir: "/usr/local/lib/python3.10/dist-packages/nvidia/cuda_nvcc"
+xla_dump_to: "/work/hlo_4096"
+xla_dump_hlo_as_text: true

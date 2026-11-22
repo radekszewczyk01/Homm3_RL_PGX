@@ -1,0 +1,6 @@
+HloModule jit_iota, entry_computation_layout={()->s32[165]{0}}, allow_spmd_sharding_propagation_to_output={true}
+
+ENTRY %main.2 () -> s32[165] {
+  ROOT %iota.1 = s32[165]{0} iota(), iota_dimension=0, metadata={op_name="jit(iota)/jit(main)/iota" source_file="/work/src/jax_engine_v3.py" source_line=126}
+}
+

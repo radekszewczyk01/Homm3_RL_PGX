@@ -1,0 +1,15 @@
+HloModule jit_add, is_scheduled=true, entry_computation_layout={(s32[165]{0}, s32[])->s32[165]{0}}, allow_spmd_sharding_propagation_to_parameters={true,true}, allow_spmd_sharding_propagation_to_output={true}, frontend_attributes={fingerprint_before_lhs="f8189ef12cda096937488dec8cf8a030"}
+
+%fused_add (param_0: s32[165], param_1.1: s32[]) -> s32[165] {
+  %param_0 = s32[165]{0} parameter(0)
+  %param_1.1 = s32[] parameter(1)
+  %broadcast.3.1 = s32[165]{0} broadcast(%param_1.1), dimensions={}, metadata={op_name="jit(add)/jit(main)/add" source_file="/work/src/jax_engine_v3.py" source_line=151}
+  ROOT %add.4.1 = s32[165]{0} add(%param_0, %broadcast.3.1), metadata={op_name="jit(add)/jit(main)/add" source_file="/work/src/jax_engine_v3.py" source_line=151}
+}
+
+ENTRY %main.5 (Arg_0.1: s32[165], Arg_1.2: s32[]) -> s32[165] {
+  %Arg_1.2 = s32[] parameter(1), metadata={op_name="y"}
+  %Arg_0.1 = s32[165]{0} parameter(0), metadata={op_name="x"}
+  ROOT %loop_add_fusion = s32[165]{0} fusion(%Arg_0.1, %Arg_1.2), kind=kLoop, calls=%fused_add, metadata={op_name="jit(add)/jit(main)/add" source_file="/work/src/jax_engine_v3.py" source_line=151}
+}
+

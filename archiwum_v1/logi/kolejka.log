@@ -1,0 +1,16 @@
+11:23:33 GPU 0 -> puct-domyslny_s0
+11:23:38 GPU 1 -> puct-strojony_s0
+11:23:43 GPU 2 -> gumbel-m16_s0
+14:24:19 GPU 0 -> puct-domyslny_s1
+14:24:54 GPU 2 -> puct-strojony_s1
+14:26:59 GPU 1 -> gumbel-m16_s1
+17:28:05 GPU 2 -> puct-domyslny_s2
+17:30:10 GPU 1 -> puct-strojony_s2
+17:55:45 GPU 0 -> gumbel-m16_s2
+20:33:21 GPU 1 -> gumbel-m64_s0
+20:33:56 GPU 2 -> gumbel-m64_s1
+20:56:31 GPU 0 -> gumbel-m64_s2
+23:34:06 GPU 1 -> gumbel-m16-bez_s0
+23:34:41 GPU 2 -> gumbel-m16-bez_s1
+00:01:47 GPU 0 -> gumbel-m16-bez_s2
+03:02:24 KOLEJKA ZAKONCZONA

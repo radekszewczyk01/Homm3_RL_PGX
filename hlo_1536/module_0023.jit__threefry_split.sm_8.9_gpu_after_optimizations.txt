@@ -1,0 +1,178 @@
+HloModule jit__threefry_split, is_scheduled=true, entry_computation_layout={(u32[2]{0})->u32[1536,2]{1,0}}, allow_spmd_sharding_propagation_to_parameters={true}, allow_spmd_sharding_propagation_to_output={true}, frontend_attributes={fingerprint_before_lhs="cfc242441213b35dcb4db3115f44ee8b"}
+
+%fused_concatenate (param_0.310: u32[2]) -> u32[1536,2] {
+  %iota.8.74 = u64[1536]{0} iota(), iota_dimension=0, metadata={op_name="jit(_threefry_split)/jit(main)/iota_2x32_shape" source_file="/work/src/benchark.py" source_line=282}
+  %constant_2_1 = u64[] constant(32)
+  %broadcast.3.23 = u64[1536]{0} broadcast(%constant_2_1), dimensions={}
+  %shift-right-logical.9.25 = u64[1536]{0} shift-right-logical(%iota.8.74, %broadcast.3.23), metadata={op_name="jit(_threefry_split)/jit(main)/iota_2x32_shape" source_file="/work/src/benchark.py" source_line=282}
+  %convert.11.23 = u32[1536]{0} convert(%shift-right-logical.9.25), metadata={op_name="jit(_threefry_split)/jit(main)/iota_2x32_shape" source_file="/work/src/benchark.py" source_line=282}
+  %param_0.310 = u32[2]{0} parameter(0)
+  %slice.4.47 = u32[1]{0} slice(%param_0.310), slice={[0:1]}, metadata={op_name="jit(_threefry_split)/jit(main)/slice" source_file="/work/src/benchark.py" source_line=282}
+  %bitcast.64 = u32[] bitcast(%slice.4.47), metadata={op_name="jit(_threefry_split)/jit(main)/slice" source_file="/work/src/benchark.py" source_line=282}
+  %broadcast.0.45 = u32[1536]{0} broadcast(%bitcast.64), dimensions={}, metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.0.23 = u32[1536]{0} add(%convert.11.23, %broadcast.0.45), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %iota.8.73 = u64[1536]{0} iota(), iota_dimension=0, metadata={op_name="jit(_threefry_split)/jit(main)/iota_2x32_shape" source_file="/work/src/benchark.py" source_line=282}
+  %convert.10.49 = u32[1536]{0} convert(%iota.8.73), metadata={op_name="jit(_threefry_split)/jit(main)/iota_2x32_shape" source_file="/work/src/benchark.py" source_line=282}
+  %slice.6.59 = u32[1]{0} slice(%param_0.310), slice={[1:2]}, metadata={op_name="jit(_threefry_split)/jit(main)/slice" source_file="/work/src/benchark.py" source_line=282}
+  %bitcast.1.84 = u32[] bitcast(%slice.6.59), metadata={op_name="jit(_threefry_split)/jit(main)/slice" source_file="/work/src/benchark.py" source_line=282}
+  %broadcast.1.69 = u32[1536]{0} broadcast(%bitcast.1.84), dimensions={}, metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.1.47 = u32[1536]{0} add(%convert.10.49, %broadcast.1.69), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.2.21 = u32[1536]{0} add(%add.0.23, %add.1.47), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_0_1 = u32[] constant(13)
+  %broadcast.2.49 = u32[1536]{0} broadcast(%constant_0_1), dimensions={}
+  %shift-left.0.27 = u32[1536]{0} shift-left(%add.1.47, %broadcast.2.49), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %constant_1_1 = u32[] constant(19)
+  %broadcast.4.49 = u32[1536]{0} broadcast(%constant_1_1), dimensions={}
+  %shift-right-logical.0.27 = u32[1536]{0} shift-right-logical(%add.1.47, %broadcast.4.49), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.0.25 = u32[1536]{0} or(%shift-left.0.27, %shift-right-logical.0.27), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.0.23 = u32[1536]{0} xor(%add.2.21, %or.0.25), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.3.20 = u32[1536]{0} add(%add.2.21, %xor.0.23), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_3_1 = u32[] constant(15)
+  %broadcast.5.81 = u32[1536]{0} broadcast(%constant_3_1), dimensions={}
+  %shift-left.1.13 = u32[1536]{0} shift-left(%xor.0.23, %broadcast.5.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %constant_4_1 = u32[] constant(17)
+  %broadcast.6.81 = u32[1536]{0} broadcast(%constant_4_1), dimensions={}
+  %shift-right-logical.1.13 = u32[1536]{0} shift-right-logical(%xor.0.23, %broadcast.6.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.1.11 = u32[1536]{0} or(%shift-left.1.13, %shift-right-logical.1.13), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.1.9 = u32[1536]{0} xor(%add.3.20, %or.1.11), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.4.11 = u32[1536]{0} add(%add.3.20, %xor.1.9), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_5_1 = u32[] constant(26)
+  %broadcast.7.56 = u32[1536]{0} broadcast(%constant_5_1), dimensions={}
+  %shift-left.2.15 = u32[1536]{0} shift-left(%xor.1.9, %broadcast.7.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %constant_6_1 = u32[] constant(6)
+  %broadcast.8.56 = u32[1536]{0} broadcast(%constant_6_1), dimensions={}
+  %shift-right-logical.2.15 = u32[1536]{0} shift-right-logical(%xor.1.9, %broadcast.8.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.2.13 = u32[1536]{0} or(%shift-left.2.15, %shift-right-logical.2.15), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.2.11 = u32[1536]{0} xor(%add.4.11, %or.2.13), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.5.8 = u32[1536]{0} add(%add.4.11, %xor.2.11), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.6.9 = u32[1536]{0} add(%add.5.8, %broadcast.1.69), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.3.9 = u32[1536]{0} shift-left(%xor.2.11, %broadcast.8.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.3.9 = u32[1536]{0} shift-right-logical(%xor.2.11, %broadcast.7.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.3.7 = u32[1536]{0} or(%shift-left.3.9, %shift-right-logical.3.9), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.3.5 = u32[1536]{0} xor(%add.5.8, %or.3.7), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %xor.4.17 = u32[] xor(%bitcast.64, %bitcast.1.84), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %constant_7_1 = u32[] constant(466688986)
+  %xor.5.15 = u32[] xor(%xor.4.17, %constant_7_1), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %broadcast.10.16 = u32[1536]{0} broadcast(%xor.5.15), dimensions={}, metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.7.5 = u32[1536]{0} add(%xor.3.5, %broadcast.10.16), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_8_1 = u32[] constant(1)
+  %broadcast.11.3 = u32[1536]{0} broadcast(%constant_8_1), dimensions={}
+  %add.8.3 = u32[1536]{0} add(%add.7.5, %broadcast.11.3), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.9.7 = u32[1536]{0} add(%add.6.9, %add.8.3), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.4.21 = u32[1536]{0} shift-left(%add.8.3, %broadcast.6.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.4.21 = u32[1536]{0} shift-right-logical(%add.8.3, %broadcast.5.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.4.19 = u32[1536]{0} or(%shift-left.4.21, %shift-right-logical.4.21), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.6.17 = u32[1536]{0} xor(%add.9.7, %or.4.19), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.10.14 = u32[1536]{0} add(%add.9.7, %xor.6.17), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_9_1 = u32[] constant(29)
+  %broadcast.12.24 = u32[1536]{0} broadcast(%constant_9_1), dimensions={}
+  %shift-left.5.11 = u32[1536]{0} shift-left(%xor.6.17, %broadcast.12.24), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %constant_10_1 = u32[] constant(3)
+  %broadcast.13.27 = u32[1536]{0} broadcast(%constant_10_1), dimensions={}
+  %shift-right-logical.5.11 = u32[1536]{0} shift-right-logical(%xor.6.17, %broadcast.13.27), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.5.9 = u32[1536]{0} or(%shift-left.5.11, %shift-right-logical.5.11), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.7.7 = u32[1536]{0} xor(%add.10.14, %or.5.9), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.11.7 = u32[1536]{0} add(%add.10.14, %xor.7.7), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_11_1 = u32[] constant(16)
+  %broadcast.14.48 = u32[1536]{0} broadcast(%constant_11_1), dimensions={}
+  %shift-left.6.11 = u32[1536]{0} shift-left(%xor.7.7, %broadcast.14.48), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.6.11 = u32[1536]{0} shift-right-logical(%xor.7.7, %broadcast.14.48), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.6.9 = u32[1536]{0} or(%shift-left.6.11, %shift-right-logical.6.11), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.8.7 = u32[1536]{0} xor(%add.11.7, %or.6.9), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.12.4 = u32[1536]{0} add(%add.11.7, %xor.8.7), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.13.5 = u32[1536]{0} add(%add.12.4, %broadcast.10.16), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_12_1 = u32[] constant(24)
+  %broadcast.16.18 = u32[1536]{0} broadcast(%constant_12_1), dimensions={}
+  %shift-left.7.9 = u32[1536]{0} shift-left(%xor.8.7, %broadcast.16.18), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %constant_13_1 = u32[] constant(8)
+  %broadcast.18.18 = u32[1536]{0} broadcast(%constant_13_1), dimensions={}
+  %shift-right-logical.7.9 = u32[1536]{0} shift-right-logical(%xor.8.7, %broadcast.18.18), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.7.7 = u32[1536]{0} or(%shift-left.7.9, %shift-right-logical.7.9), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.9.5 = u32[1536]{0} xor(%add.12.4, %or.7.7), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.14.5 = u32[1536]{0} add(%xor.9.5, %broadcast.0.45), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_14_1 = u32[] constant(2)
+  %broadcast.22.3 = u32[1536]{0} broadcast(%constant_14_1), dimensions={}
+  %add.15.3 = u32[1536]{0} add(%add.14.5, %broadcast.22.3), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.16.3 = u32[1536]{0} add(%add.13.5, %add.15.3), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.8.15 = u32[1536]{0} shift-left(%add.15.3, %broadcast.2.49), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.8.15 = u32[1536]{0} shift-right-logical(%add.15.3, %broadcast.4.49), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.8.13 = u32[1536]{0} or(%shift-left.8.15, %shift-right-logical.8.15), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.10.11 = u32[1536]{0} xor(%add.16.3, %or.8.13), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.17.22 = u32[1536]{0} add(%add.16.3, %xor.10.11), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.9.15 = u32[1536]{0} shift-left(%xor.10.11, %broadcast.5.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.10.15 = u32[1536]{0} shift-right-logical(%xor.10.11, %broadcast.6.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.9.13 = u32[1536]{0} or(%shift-left.9.15, %shift-right-logical.10.15), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.11.11 = u32[1536]{0} xor(%add.17.22, %or.9.13), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.18.11 = u32[1536]{0} add(%add.17.22, %xor.11.11), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.10.15 = u32[1536]{0} shift-left(%xor.11.11, %broadcast.7.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.11.15 = u32[1536]{0} shift-right-logical(%xor.11.11, %broadcast.8.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.10.13 = u32[1536]{0} or(%shift-left.10.15, %shift-right-logical.11.15), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.12.11 = u32[1536]{0} xor(%add.18.11, %or.10.13), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.19.8 = u32[1536]{0} add(%add.18.11, %xor.12.11), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.20.9 = u32[1536]{0} add(%add.19.8, %broadcast.0.45), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.11.9 = u32[1536]{0} shift-left(%xor.12.11, %broadcast.8.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.12.9 = u32[1536]{0} shift-right-logical(%xor.12.11, %broadcast.7.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.11.7 = u32[1536]{0} or(%shift-left.11.9, %shift-right-logical.12.9), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.13.5 = u32[1536]{0} xor(%add.19.8, %or.11.7), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.21.5 = u32[1536]{0} add(%xor.13.5, %broadcast.1.69), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.22.3 = u32[1536]{0} add(%add.21.5, %broadcast.13.27), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.23.7 = u32[1536]{0} add(%add.20.9, %add.22.3), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.12.21 = u32[1536]{0} shift-left(%add.22.3, %broadcast.6.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.13.21 = u32[1536]{0} shift-right-logical(%add.22.3, %broadcast.5.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.12.19 = u32[1536]{0} or(%shift-left.12.21, %shift-right-logical.13.21), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.14.17 = u32[1536]{0} xor(%add.23.7, %or.12.19), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.24.14 = u32[1536]{0} add(%add.23.7, %xor.14.17), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.13.11 = u32[1536]{0} shift-left(%xor.14.17, %broadcast.12.24), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.14.11 = u32[1536]{0} shift-right-logical(%xor.14.17, %broadcast.13.27), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.13.9 = u32[1536]{0} or(%shift-left.13.11, %shift-right-logical.14.11), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.15.7 = u32[1536]{0} xor(%add.24.14, %or.13.9), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.25.7 = u32[1536]{0} add(%add.24.14, %xor.15.7), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.14.11 = u32[1536]{0} shift-left(%xor.15.7, %broadcast.14.48), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.15.11 = u32[1536]{0} shift-right-logical(%xor.15.7, %broadcast.14.48), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.14.9 = u32[1536]{0} or(%shift-left.14.11, %shift-right-logical.15.11), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.16.7 = u32[1536]{0} xor(%add.25.7, %or.14.9), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.26.4 = u32[1536]{0} add(%add.25.7, %xor.16.7), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.27.3 = u32[1536]{0} add(%add.26.4, %broadcast.1.69), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.15.9 = u32[1536]{0} shift-left(%xor.16.7, %broadcast.16.18), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.16.9 = u32[1536]{0} shift-right-logical(%xor.16.7, %broadcast.18.18), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.15.7 = u32[1536]{0} or(%shift-left.15.9, %shift-right-logical.16.9), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.17.5 = u32[1536]{0} xor(%add.26.4, %or.15.7), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.28.3 = u32[1536]{0} add(%xor.17.5, %broadcast.10.16), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_15_1 = u32[] constant(4)
+  %broadcast.32.1 = u32[1536]{0} broadcast(%constant_15_1), dimensions={}
+  %add.29.1 = u32[1536]{0} add(%add.28.3, %broadcast.32.1), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.30.1 = u32[1536]{0} add(%add.27.3, %add.29.1), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.16.3 = u32[1536]{0} shift-left(%add.29.1, %broadcast.2.49), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.17.3 = u32[1536]{0} shift-right-logical(%add.29.1, %broadcast.4.49), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.16.1 = u32[1536]{0} or(%shift-left.16.3, %shift-right-logical.17.3), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.18.1 = u32[1536]{0} xor(%add.30.1, %or.16.1), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.31.1 = u32[1536]{0} add(%add.30.1, %xor.18.1), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.17.3 = u32[1536]{0} shift-left(%xor.18.1, %broadcast.5.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.18.3 = u32[1536]{0} shift-right-logical(%xor.18.1, %broadcast.6.81), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.17.1 = u32[1536]{0} or(%shift-left.17.3, %shift-right-logical.18.3), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.19.1 = u32[1536]{0} xor(%add.31.1, %or.17.1), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.32.1 = u32[1536]{0} add(%add.31.1, %xor.19.1), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.18.3 = u32[1536]{0} shift-left(%xor.19.1, %broadcast.7.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.19.3 = u32[1536]{0} shift-right-logical(%xor.19.1, %broadcast.8.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.18.1 = u32[1536]{0} or(%shift-left.18.3, %shift-right-logical.19.3), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.20.1 = u32[1536]{0} xor(%add.32.1, %or.18.1), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.33.1 = u32[1536]{0} add(%add.32.1, %xor.20.1), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %add.34.3 = u32[1536]{0} add(%add.33.1, %broadcast.10.16), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %bitcast.2.1 = u32[1536,1]{1,0} bitcast(%add.34.3), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %shift-left.19.3 = u32[1536]{0} shift-left(%xor.20.1, %broadcast.8.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_left" source_file="/work/src/benchark.py" source_line=282}
+  %shift-right-logical.20.3 = u32[1536]{0} shift-right-logical(%xor.20.1, %broadcast.7.56), metadata={op_name="jit(_threefry_split)/jit(main)/shift_right_logical" source_file="/work/src/benchark.py" source_line=282}
+  %or.19.1 = u32[1536]{0} or(%shift-left.19.3, %shift-right-logical.20.3), metadata={op_name="jit(_threefry_split)/jit(main)/or" source_file="/work/src/benchark.py" source_line=282}
+  %xor.21.1 = u32[1536]{0} xor(%add.33.1, %or.19.1), metadata={op_name="jit(_threefry_split)/jit(main)/xor" source_file="/work/src/benchark.py" source_line=282}
+  %add.35.3 = u32[1536]{0} add(%xor.21.1, %broadcast.0.45), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %constant_17_1 = u32[] constant(5)
+  %broadcast.38.1 = u32[1536]{0} broadcast(%constant_17_1), dimensions={}
+  %add.36.1 = u32[1536]{0} add(%add.35.3, %broadcast.38.1), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  %bitcast.3.1 = u32[1536,1]{1,0} bitcast(%add.36.1), metadata={op_name="jit(_threefry_split)/jit(main)/add" source_file="/work/src/benchark.py" source_line=282}
+  ROOT %concatenate.185.1 = u32[1536,2]{1,0} concatenate(%bitcast.2.1, %bitcast.3.1), dimensions={1}, metadata={op_name="jit(_threefry_split)/jit(main)/concatenate" source_file="/work/src/benchark.py" source_line=282}
+}
+
+ENTRY %main.186 (Arg_0.1: u32[2]) -> u32[1536,2] {
+  %Arg_0.1 = u32[2]{0} parameter(0), metadata={op_name="key"}
+  ROOT %input_concatenate_fusion = u32[1536,2]{1,0} fusion(%Arg_0.1), kind=kInput, calls=%fused_concatenate, metadata={op_name="jit(_threefry_split)/jit(main)/concatenate" source_file="/work/src/benchark.py" source_line=282}
+}
+
