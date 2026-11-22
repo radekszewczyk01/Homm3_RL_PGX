@@ -94,13 +94,32 @@ if [[ -z "${W_TMUKSIE:-}" && -z "${BEZ_TMUKSA:-}" ]]; then
     echo "Na wlasne ryzyko mozna tez: ./uruchom/kolejka.sh --bez-tmuksa $*"
     exit 1; }
   if tmux has-session -t "$SESJA" 2>/dev/null; then
-    echo "Sesja '$SESJA' juz istnieje - cos tam chodzi albo zostalo po"
-    echo "poprzednim przebiegu. Sprawdz, zanim wystartujesz drugi raz:"
+    echo "Sesja '$SESJA' juz istnieje, wiec NIE STARTUJE drugiej."
     echo
-    echo "  ./uruchom/stan.sh"
-    echo "  tmux attach -t $SESJA"
+    # Pokazujemy od razu, co w tej sesji jest. Bez tego komunikat mowi tylko
+    # "cos tam chodzi albo zostalo" i trzeba osobno szukac, a wtedy latwo
+    # uznac resztke za dzialajaca serie - zwlaszcza ze stan.sh pokazuje wtedy
+    # zywa sesje z pusta tabela, co wyglada jak seria, ktora stoi.
+    echo "--- ostatnie linie tej sesji ---"
+    tmux capture-pane -p -t "$SESJA" 2>/dev/null | grep -v '^$' | tail -8 \
+      | sed 's/^/  /' || echo "  (nie udalo sie odczytac zawartosci)"
+    echo "--------------------------------"
     echo
-    echo "Jesli to resztka, usun ja:  tmux kill-session -t $SESJA"
+    if tmux capture-pane -p -t "$SESJA" 2>/dev/null \
+         | grep -q "koniec serii, okno zostaje otwarte"; then
+      echo "Powyzej widac 'koniec serii' - to RESZTKA, seria sie skonczyla"
+      echo "albo wywrocila, a okno zostalo otwarte. Mozesz ja usunac:"
+      echo
+      echo "    tmux kill-session -t $SESJA && ./uruchom/kolejka.sh $*"
+    else
+      echo "Nie widze 'koniec serii', wiec cos tam prawdopodobnie JESZCZE"
+      echo "CHODZI. Zanim cokolwiek usuniesz:"
+      echo
+      echo "    ./uruchom/stan.sh"
+      echo "    tmux attach -t $SESJA        (wyjscie: Ctrl+B potem D)"
+      echo
+      echo "Jesli to jednak resztka:  tmux kill-session -t $SESJA"
+    fi
     exit 1
   fi
   echo "Startuje seria w sesji tmuksa '$SESJA'."
@@ -396,7 +415,12 @@ fi
 DT=$(( $(date +%s) - START_SERII ))
 echo
 echo "================================================================"
-echo "### KONIEC SERII, razem $((DT / 60)) min"
+if [[ "$POKAZ" == "1" ]]; then
+  echo "### KONIEC WYDRUKU - nic nie zostalo uruchomione."
+  echo "### Jesli lista wyglada dobrze:  ./uruchom/kolejka.sh --probnie"
+else
+  echo "### KONIEC SERII, razem $((DT / 60)) min"
+fi
 echo "================================================================"
 ./uruchom/stan.sh || true
 

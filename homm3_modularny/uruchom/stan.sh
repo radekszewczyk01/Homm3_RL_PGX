@@ -9,11 +9,33 @@ cd "$(dirname "$0")/.."
 SESJA=${SESJA:-pomiary}
 WYNIKI=${WYNIKI:-wyniki}
 
-# Tryb bez karty pisze do osobnego katalogu; jesli zwyklego nie ma, a tamten
-# jest, pokazujemy tamten - zeby nie trzeba bylo pamietac o zmiennej.
-if [[ ! -f "$WYNIKI/stan.tsv" && -f "${WYNIKI}_bez_karty/stan.tsv" ]]; then
-  WYNIKI="${WYNIKI}_bez_karty"
-  echo "(pokazuje $WYNIKI - seria szla w trybie bez karty)"
+# SAM SZUKA KATALOGU SERII.
+#
+# Kolejka pisze do $WYNIKI, ktore mozna nadpisac zmienna - i wtedy stan.sh
+# bez tej samej zmiennej zaglada w zle miejsce, pokazuje PUSTA tabele przy
+# zywej sesji tmuksa i wyglada to tak, jakby seria stala. Zdarzylo sie
+# dokladnie to, wiec zamiast wymagac pamietania o zmiennej, szukamy sami:
+# najpierw tam, gdzie wskazano, potem w trybie bez karty, a na koniec w
+# dowolnym katalogu, ktory ma stan.tsv - biorac NAJSWIEZSZY.
+if [[ ! -f "$WYNIKI/stan.tsv" ]]; then
+  KANDYDAT=""
+  if [[ -f "${WYNIKI}_bez_karty/stan.tsv" ]]; then
+    KANDYDAT="${WYNIKI}_bez_karty"
+  else
+    KANDYDAT=$(ls -t ./*/stan.tsv 2>/dev/null | head -1 | xargs -r dirname)
+  fi
+  if [[ -n "$KANDYDAT" ]]; then
+    echo "(w $WYNIKI/ nie ma stan.tsv - pokazuje $KANDYDAT,"
+    echo " bo tam jest najswiezszy. Jesli to nie ta seria, podaj"
+    echo " WYNIKI=... ./uruchom/stan.sh)"
+    echo
+    WYNIKI="${KANDYDAT#./}"
+  else
+    echo "(nie znalazlem zadnego stan.tsv - albo seria jeszcze nie"
+    echo " zapisala pierwszego wiersza, albo chodzi w innym katalogu."
+    echo " Zajrzyj do sesji:  tmux attach -t $SESJA   (wyjscie Ctrl+B D))"
+    echo
+  fi
 fi
 
 STAN="$WYNIKI/stan.tsv"
