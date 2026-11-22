@@ -1215,6 +1215,17 @@ def main(argv=None):
     s.add_argument("--bez-drzewa", action="store_true", dest="bez_drzewa")
     s.set_defaults(fn=cmd_wszystko)
 
+    # --gather musi dzialac TAKZE po nazwie podkomendy. Flaga globalna
+    # argparse'a przyjmuje sie tylko PRZED podkomenda, a skrypty etapowe
+    # dokladaja dodatki na koncu wiersza - i caly etap wywalal sie na
+    # "unrecognized arguments: --gather". SUPPRESS sprawia, ze podkomenda
+    # ustawia atrybut tylko wtedy, gdy flaga faktycznie wystapila, wiec
+    # wartosc z pozycji globalnej nie jest nadpisywana domyslnym False.
+    for _sp in pod.choices.values():
+        _sp.add_argument("--gather", action="store_true",
+                         default=argparse.SUPPRESS,
+                         help="to samo co --gather przed nazwa podkomendy")
+
     args = p.parse_args(argv)
     KATALOG_WYNIKOW = args.wyniki
     os.makedirs(KATALOG_WYNIKOW, exist_ok=True)
