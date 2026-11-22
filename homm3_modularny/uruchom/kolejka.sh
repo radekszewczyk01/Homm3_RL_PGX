@@ -230,7 +230,16 @@ etap() {     # nazwa krytycznosc komenda...
     usun_trwa "$nazwa"
     zapisz "$nazwa" blad "$dt" "kod $kod, log: $log"
     echo "### $nazwa: BLAD (kod $kod), szczegoly w $log"
-    if [[ "$krytyczny" == "krytyczny" ]]; then
+    # W trybie probnym sprawdzamy, czy KAZDY etap startuje - wiec jeden
+    # przewrocony nie moze przeslonic osiemnastu pozostalych. Zatrzymanie na
+    # bramie ma sens w pelnej serii, gdzie dalsze liczby czasowe bylyby bez
+    # wartosci; w probnym zadna liczba i tak nie ma wartosci.
+    if [[ "$krytyczny" == "krytyczny" && "$PROBNIE" == "1" ]]; then
+      echo
+      echo "### Etap krytyczny nie przeszedl, ale to PRZEBIEG PROBNY -"
+      echo "### ide dalej, zeby sprawdzic pozostale etapy. W pelnej serii"
+      echo "### kolejka zatrzymalaby sie tutaj."
+    elif [[ "$krytyczny" == "krytyczny" ]]; then
       echo
       echo "### To byl etap krytyczny. Zatrzymuje kolejke, bo dalsze pomiary"
       echo "### czasowe bylyby bez wartosci. Zobacz $log i zdecyduj."
@@ -244,6 +253,21 @@ GIER=$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 30 )
 KROKI=$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 50 )
 POWT=$( [[ "$PROBNIE" == "1" ]] && echo 2 || echo 8 )
 SEK=$( [[ "$PROBNIE" == "1" ]] && echo 3 || echo 20 )
+
+# BRAMA MIERZY PELNYMI PARAMETRAMI NAWET W TRYBIE PROBNYM.
+#
+# Powod jest arytmetyczny. Przebieg mierzy czas jednego wywolania lax.scan,
+# czyli narzut staly plus kroki razy koszt kroku. Narzut wynosi na tej karcie
+# okolo 1,85 ms, a koszt kroku przy wsadzie 2048 okolo 5,67 ms. Przy dwoch
+# krokach narzut to 14 procent wywolania i przepustowosc wychodzi 310 tys.
+# zamiast 359 tys. - czyli brama zglasza rozbieznosc 16 procent wobec pracy i
+# ZATRZYMUJE cala kolejke, choc silnik jest w porzadku. Przy pieciudziesieciu
+# krokach narzut to 0,6 procent i liczba jest porownywalna.
+#
+# Brama to jedyny etap, ktorego werdykt ma sens tylko przy prawdziwych
+# parametrach, i trwa dwie minuty - wiec w trybie probnym tez idzie na pelnych.
+KROKI_BRAMA=${KROKI_BRAMA:-50}
+POWT_BRAMA=${POWT_BRAMA:-8}
 
 echo "seria startuje $(date '+%Y-%m-%d %H:%M:%S')"
 echo "wyniki: $WYNIKI, tryb: $( [[ "$PROBNIE" == "1" ]] && echo PROBNY || echo pelny )"
@@ -301,7 +325,7 @@ else
 
   etap brama krytyczny \
     $W_DOCKERZE python3 eksperymenty.py --wyniki "$WYNIKI" zgodnosc --czas \
-    --gier "$GIER" --kroki "$KROKI" --powtorzenia "$POWT"
+    --gier "$GIER" --kroki "$KROKI_BRAMA" --powtorzenia "$POWT_BRAMA"
 
   # Testy semantyczne MUSZA isc na karcie, nie na procesorze. Jeden z nich
   # sprawdza zapis liczebnosci stosu, a blad, ktory lapie, wystepuje WYLACZNIE
