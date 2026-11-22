@@ -533,6 +533,7 @@ def otoczenie() -> dict:
         # awaryjnej raz juz unieważnil zestaw pomiarow. Teraz widac to w danych.
         "pula_zrodlo": rdzen.POOL_ZRODLO,
         "pula_awaryjna": bool(rdzen.POOL_AWARYJNA),
+        "pula_poprawki": list(rdzen.POOL_POPRAWKI),
         "pula_stworow": int(rdzen.POOL.shape[0]),
         "pula_max_szybkosc": int(np.asarray(rdzen.POOL)[:, rdzen.P_SPD].max()),
         "host": platform.node(),

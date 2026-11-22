@@ -244,6 +244,7 @@ SCIEZKI_LUT = (
 
 POOL_ZRODLO = "nie wczytano"       # skad przyszla pula; wchodzi do wynikow
 POOL_AWARYJNA = True               # czy to pula zastepcza
+POOL_POPRAWKI = []                 # niemozliwe wiersze, ktore trzeba bylo poprawic
 
 
 def load_pool(lut_path=None, vmin=60.0, vmax=700.0,
@@ -314,6 +315,50 @@ def load_pool(lut_path=None, vmin=60.0, vmax=700.0,
     out[:, P_SHOTS] = np.where((out[:, P_SHOOT] > 0) & (out[:, P_SHOTS] <= 0),
                                12.0, out[:, P_SHOTS])
     out[:, P_RETAL] = np.maximum(out[:, P_RETAL], 1.0)
+
+    # ------------------------------------------------------------------
+    # Kontrola sensownosci wierszy.
+    #
+    # Silnik jest bezgalezowy i nie sprawdza niczego w czasie gry - a to
+    # znaczy, ze niemozliwa wartosc w tablicy nie wywoluje bledu, tylko
+    # cicho rozchodzi sie przez arytmetyke. Najgorszy przypadek jest
+    # konkretny: ujemne obrazenia minimalne daja ujemny cios, ujemny cios
+    # w `zadaj_obrazenia` zwieksza `remaining`, a zwiekszone `remaining`
+    # ODTWARZA polegly stos. Niezmiennik zglasza wtedy "wysysanie zycia
+    # przekroczylo pulap", choc wysysanie nie ma z tym nic wspolnego.
+    #
+    # Dlatego poprawiamy tutaj, raz, przy wczytywaniu - i mowimy o kazdej
+    # poprawce, zamiast ja ukrywac. Poprawki trafiaja tez do plikow
+    # wynikow przez `otoczenie()`.
+    global POOL_POPRAWKI
+    POOL_POPRAWKI = []
+    for opis, maska, napraw in (
+        ("obrazenia minimalne ponizej zera", out[:, P_MIN] < 0,
+         lambda t: np.maximum(t[:, P_MIN], 0.0)),
+        ("obrazenia maksymalne ponizej minimalnych", out[:, P_MAX] < out[:, P_MIN],
+         lambda t: np.maximum(t[:, P_MAX], t[:, P_MIN])),
+        ("obrazenia maksymalne zerowe", out[:, P_MAX] <= 0,
+         lambda t: np.maximum(t[:, P_MAX], 1.0)),
+        ("szybkosc ponizej jednego", out[:, P_SPD] < 1,
+         lambda t: np.maximum(t[:, P_SPD], 1.0)),
+        ("atak ponizej zera", out[:, P_ATK] < 0,
+         lambda t: np.maximum(t[:, P_ATK], 0.0)),
+        ("obrona ponizej zera", out[:, P_DEF] < 0,
+         lambda t: np.maximum(t[:, P_DEF], 0.0)),
+    ):
+        n = int(maska.sum())
+        if not n:
+            continue
+        kolumna = {"obrazenia minimalne ponizej zera": P_MIN,
+                   "obrazenia maksymalne ponizej minimalnych": P_MAX,
+                   "obrazenia maksymalne zerowe": P_MAX,
+                   "szybkosc ponizej jednego": P_SPD,
+                   "atak ponizej zera": P_ATK,
+                   "obrona ponizej zera": P_DEF}[opis]
+        out[:, kolumna] = napraw(out)
+        POOL_POPRAWKI.append(f"{opis}: {n} wierszy poprawionych")
+        print(f"[pula] POPRAWKA  {opis}: {n} wierszy. Zrodlo: {POOL_ZRODLO}",
+              file=sys.stderr)
 
     if not cicho:
         print(f"[pula] {out.shape[0]} stworow z {POOL_ZRODLO}  "
