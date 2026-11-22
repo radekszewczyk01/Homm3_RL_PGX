@@ -518,11 +518,34 @@ def reachable_mask(state: BattleState, u_id, kfg, haki: Haki) -> jnp.ndarray:
     def walk():
         init = jnp.zeros(NUM_HEXES, dtype=jnp.bool_).at[my_f].set(True)
 
-        def wave(i, r):
-            nxt = jnp.dot(STATIC_ADJ, r)
-            return jax.lax.select(i < spd, r | (nxt & stand), r)
+        # DWIE IMPLEMENTACJE TEJ SAMEJ FALI
+        # ---------------------------------
+        # Wersja macierzowa: nxt = STATIC_ADJ @ r, czyli iloczyn 165 x 165
+        # razy wektor. To 27 225 mnozen na iteracje, a kazda iteracja
+        # materializuje poredni wektor 165 elementow.
+        #
+        # Wersja z odczytem sasiadow: heks jest osiagalny, jesli osiagalny
+        # jest ktorykolwiek z jego szesciu sasiadow. To szesc odczytow po
+        # tablicy sasiedztwa, czyli 990 operacji zamiast 27 225. Semantyka
+        # identyczna, bo STATIC_ADJ jest symetryczna i powstala dokladnie
+        # z NEIGHBOR_SAFE/NEIGHBOR_OK (test_mechanik.py to sprawdza).
+        #
+        # Po co dwie: ta petla jest podejrzana o wyznaczanie progu rezydencji
+        # w L2 (zmierzony slad jadra to 29 kB na srodowisko, a dwadziescia
+        # iteracji liczone dwa razy na krok daje 26,4 kB). Jesli podejrzenie
+        # jest sluszne, przejscie na odczyt sasiadow przesunie prog w gore
+        # i podniesie przepustowosc. Jesli nie - nie zmieni ani jednego,
+        # ani drugiego, i trzeba szukac dalej.
+        if kfg.zasieg_gatherem:
+            def wave(i, r):
+                nxt = jnp.any(r[NEIGHBOR_SAFE] & NEIGHBOR_OK, axis=1)
+                return jax.lax.select(i < spd, r | (nxt & stand), r)
+        else:
+            def wave(i, r):
+                nxt = jnp.dot(STATIC_ADJ, r)
+                return jax.lax.select(i < spd, r | (nxt & stand), r)
 
-        return jax.lax.fori_loop(0, 20, wave, init)
+        return jax.lax.fori_loop(0, kfg.iteracje_zasiegu, wave, init)
 
     out = jax.lax.cond(state.is_flyer[u_id], fly, walk)
     return out.at[my_f].set(True)

@@ -433,6 +433,63 @@ def test_klasa3():
 
 
 # ===========================================================================
+# DWIE IMPLEMENTACJE FALI ZASIEGU DAJA TEN SAM WYNIK
+# ===========================================================================
+
+def test_zasieg(gier=30):
+    """Fala macierzowa i fala z odczytem sasiadow musza byc rownowazne.
+
+    To nie jest test porzadkowy. Na roznicy tych dwoch implementacji opiera
+    sie wniosek o tym, co wyznacza prog rezydencji w L2 - a wniosek z dwoch
+    wariantow, ktore licza COS INNEGO, byl by bez wartosci. Porownujemy
+    maski heks po heksie, dla kazdej zywej jednostki, na losowych stanach.
+    """
+    print("\n--- fala zasiegu: macierz wobec odczytu sasiadow ---")
+    from homm3.rdzen import reachable_mask
+
+    kfg_m = preset("odniesienie")
+    kfg_g = dataclasses.replace(kfg_m, zasieg_gatherem=True, nazwa="gather")
+    env_m, env_g = zbuduj(kfg_m), zbuduj(kfg_g)
+
+    # jedna kompilacja na wariant: wektoryzujemy po jednostkach
+    jednostki = jnp.arange(MAX_UNITS)
+
+    @jax.jit
+    def maski_macierz(st):
+        return jax.vmap(lambda u: reachable_mask(st, u, kfg_m, env_m.haki))(
+            jednostki)
+
+    @jax.jit
+    def maski_gather(st):
+        return jax.vmap(lambda u: reachable_mask(st, u, kfg_g, env_g.haki))(
+            jednostki)
+
+    init = jax.jit(env_m.init)
+    rozne, porownanych, heksow = 0, 0, 0
+    for z in range(gier):
+        st = init(jax.random.PRNGKey(1000 + z))
+        a = np.asarray(maski_macierz(st))
+        b = np.asarray(maski_gather(st))
+        zywe = np.asarray(st.alive)
+        for u in np.where(zywe)[0]:
+            porownanych += 1
+            heksow += int(a[u].sum())
+            if not np.array_equal(a[u], b[u]):
+                rozne += 1
+                if rozne <= 3:
+                    print(f"       ROZNICA ziarno {z} jednostka {u}: "
+                          f"macierz {a[u].sum()} heksow, "
+                          f"odczyt {b[u].sum()}")
+
+    sprawdz(rozne == 0,
+            "obie implementacje daja identyczne maski zasiegu",
+            f"{porownanych} masek, srednio {heksow / max(porownanych, 1):.1f} "
+            f"heksow, roznic {rozne}")
+    sprawdz(heksow > 0, "maski nie sa puste (test cos faktycznie sprawdza)",
+            f"{heksow} heksow razem")
+
+
+# ===========================================================================
 # WYLACZONA MECHANIKA NIE KOSZTUJE NIC
 # ===========================================================================
 
@@ -486,6 +543,7 @@ def main():
     test_klasa3()
     test_klasa1()
     test_klasa4(args.prob)
+    test_zasieg()
     if not args.bez_kosztu:
         test_koszt_zerowy()
 

@@ -33,6 +33,9 @@ def main():
     p.add_argument("--wsad", type=int, default=2048)
     p.add_argument("--kroki", type=int, default=5)
     p.add_argument("--czary", nargs="*", default=None)
+    p.add_argument("--gather", action="store_true",
+                   help="fala zasiegu odczytem sasiadow zamiast iloczynem "
+                        "macierzowym (ta sama semantyka, inny koszt)")
     p.add_argument("--cicho", action="store_true")
     args = p.parse_args()
 
@@ -40,6 +43,9 @@ def main():
               "nazwa": f"{args.preset}_k{args.kanaly}"}
     if args.czary is not None:
         zmiany["czary"] = tuple(c for c in args.czary if c)
+    if args.gather:
+        zmiany["zasieg_gatherem"] = True
+        zmiany["nazwa"] = zmiany["nazwa"] + "_gather"
     kfg = dataclasses.replace(preset(args.preset), **zmiany)
     env = zbuduj(kfg)
 

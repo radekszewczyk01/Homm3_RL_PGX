@@ -155,6 +155,23 @@ class Konfiguracja:
     kanaly_wypelniajace: int = 0    # sztuczne kanaly obserwacji; kazdy to
                                     # 165 liczb float32 pisanych w kazdym
                                     # kroku, czyli wzrost D W GORACEJ SCIEZCE
+
+    # Implementacja fali zasiegu ruchu. Semantyka IDENTYCZNA, inny koszt:
+    #   False - iloczyn macierzowy STATIC_ADJ @ r, 27 225 operacji/iteracje
+    #   True  - odczyt szesciu sasiadow,              990 operacji/iteracje
+    # Wersja macierzowa jest ta z pracy i jest domyslna, zeby liczby dawaly
+    # sie zestawiac. Wersja z odczytem sluzy do sprawdzenia, czy ta petla
+    # wyznacza prog rezydencji w L2 - i jesli tak, jest po prostu lepsza.
+    zasieg_gatherem: bool = False
+
+    # Liczba iteracji fali. Musi byc NIE MNIEJSZA od najwyzszej szybkosci
+    # w puli, inaczej jednostki przestaja dochodzic tam, gdzie powinny -
+    # czyli zmienia sie ZASADY GRY, a nie tylko koszt. Obnizanie tej liczby
+    # ma sens WYLACZNIE jako pomiar sladu pamieciowego i wyniki z takiego
+    # przebiegu nie sa wynikami o grze. eksperymenty.py zgodnosc odmawia
+    # przejscia, gdy wartosc jest inna niz 20.
+    iteracje_zasiegu: int = 20
+
     nazwa: str = "bez_nazwy"
 
     # -------------------------------------------------------------------

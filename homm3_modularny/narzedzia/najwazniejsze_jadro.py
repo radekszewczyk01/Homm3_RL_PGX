@@ -40,6 +40,11 @@ def wczytaj(sciezka):
     return list(csv.DictReader(io.StringIO("".join(linie[start:]))))
 
 
+def nazwa_dokladna(nazwa):
+    """Sama nazwa jadra, bez listy argumentow."""
+    return nazwa.split("(")[0].strip()
+
+
 def main():
     argumenty = [a for a in sys.argv[1:] if not a.startswith("--")]
     tylko_regex = "--tylko-regex" in sys.argv
@@ -71,8 +76,7 @@ def main():
     razem = sum(czas.values())
     if tylko_regex:
         glowne = czas.most_common(1)[0][0]
-        rdzen_nazwy = re.sub(r"[\d_]+$", "", glowne.split("(")[0]).strip()
-        print(f"^{re.escape(rdzen_nazwy)}")
+        print(f"^{re.escape(nazwa_dokladna(glowne))}$")
         return 0
 
     print(f"{'udzial':>8} {'wywolan':>8} {'suma [us]':>12}  jadro")
@@ -82,10 +86,26 @@ def main():
               f"{nazwa[:48]}")
 
     glowne = czas.most_common(1)[0][0]
-    rdzen_nazwy = re.sub(r"[\d_]+$", "", glowne.split("(")[0]).strip()
+    dokladna = nazwa_dokladna(glowne)
     print(f"\nDominuje: {glowne}")
     print(f"Udzial w czasie: {100 * czas[glowne] / razem:.1f}%")
-    print(f"\nRegex do ncu:\n    --kernel-name regex:^{re.escape(rdzen_nazwy)}")
+    print(f"\nRegex do ncu:\n    --kernel-name regex:^{re.escape(dokladna)}$")
+
+    # Ostrzezenie o mieszaniu jader: prefiks nazwy bywa wspolny dla kilku
+    # ROZNYCH jader o roznych rozmiarach. Zbieranie licznikow po prefiksie
+    # usrednia je razem, a wtedy iloczyn pasma i czasu nie jest sladem
+    # zadnego z nich. Dlatego regex powyzej jest zakotwiczony z obu stron.
+    prefiks = re.sub(r"[\d_]+$", "", dokladna)
+    rodzina = [(n, v) for n, v in czas.items()
+               if nazwa_dokladna(n).startswith(prefiks)]
+    if len(rodzina) > 1:
+        print(f"\nUWAGA: nazwe o tym samym prefiksie '{prefiks}' nosi "
+              f"{len(rodzina)} roznych jader:")
+        for n, v in sorted(rodzina, key=lambda x: -x[1]):
+            print(f"    {100 * v / razem:6.2f}%  {nazwa_dokladna(n)}")
+        print("  Zbieranie po prefiksie usrednia je razem i slad pamieciowy")
+        print("  wyliczony z takich danych nie nalezy do zadnego z nich.")
+        print("  Uzyj regexa zakotwiczonego, podanego wyzej.")
     if 100 * czas[glowne] / razem < 40:
         print("\nUWAGA: zadne jadro nie dominuje wyraznie. Zbierz liczniki "
               "z kilku\nnajwiekszych i podaj je osobno, albo zwaz je czasem.")

@@ -768,6 +768,106 @@ def cmd_akcje(args):
 
 
 # ===========================================================================
+# 6a2. IMPLEMENTACJA FALI ZASIEGU A PROG REZYDENCJI
+# ===========================================================================
+
+def cmd_zasieg(args):
+    """Czy petla zasiegu ruchu wyznacza prog rezydencji w L2.
+
+    SKAD TO PYTANIE
+    ---------------
+    Zmierzony slad jadra dominujacego w czasie kroku to okolo 29 kB na
+    srodowisko i NIE ZALEZY ani od rozmiaru stanu (sprawdzone na zakresie
+    2,26x), ani od przestrzeni akcji (sprawdzone na 1,00x i 2,00x). Zostaja
+    polprodukty zalezne tylko od geometrii planszy, a najwiekszym kandydatem
+    jest fala zasiegu: dwadziescia iteracji iloczynu 165 x 165 razy wektor,
+    liczona DWA RAZY na krok, bo potrzebuje jej i maska akcji, i obserwacja.
+    Dwadziescia iteracji po 660 bajtow, dwa razy, to 26,4 kB przy
+    zmierzonych 29.
+
+    JAK TO SPRAWDZAMY
+    -----------------
+    Ta sama fala, policzona odczytem szesciu sasiadow zamiast iloczynem
+    macierzowym: 990 operacji na iteracje zamiast 27 225, semantyka
+    identyczna (test_mechanik.py sprawdza rownosc masek). Jesli podejrzenie
+    jest sluszne, optimum przepustowosci przesunie sie w gore, bo zmalal
+    slad. Jesli nie - zostanie tam, gdzie bylo.
+
+    Pomiar czasowy wystarcza i nie trzeba do tego licznikow sprzetowych:
+    przesuniecie optimum widac wprost w krzywej.
+    """
+    _naglowek("IMPLEMENTACJA FALI ZASIEGU A PROG REZYDENCJI")
+    bazowa = preset(args.preset)
+    warianty = [
+        ("macierz (jak w pracy)", dataclasses.replace(
+            bazowa, zasieg_gatherem=False, nazwa=f"{args.preset}_macierz")),
+        ("odczyt sasiadow", dataclasses.replace(
+            bazowa, zasieg_gatherem=True, nazwa=f"{args.preset}_gather")),
+    ]
+
+    wiersze, krzywe = [], {}
+    for opis, kfg in warianty:
+        env = zbuduj(kfg)
+        D = rozmiar_stanu(env)
+        k = analiza_kosztu(env, args.wsad)
+        k["warianty"] = opis
+        k["D"] = D
+        krzywa = []
+        for B in args.wsady:
+            try:
+                p = przepustowosc(env, B, kroki=args.kroki,
+                                  powtorzenia=args.powtorzenia,
+                                  metoda=getattr(args, "metoda", "benchark"))
+            except Exception as e:
+                print(f"    {opis}, wsad {B}: {type(e).__name__}: "
+                      f"{str(e)[:80]}")
+                continue
+            krzywa.append(p)
+            print(f"    {opis:<22} B={B:>5}  "
+                  f"{p['krokow_na_sekunde']:>10,.0f} krokow/s "
+                  f"(+-{p['odchylenie_pct']:.1f}%)")
+        if krzywa:
+            naj = max(krzywa, key=lambda p: p["krokow_na_sekunde"])
+            k["B_najlepszy"] = naj["wsad"]
+            k["szczyt"] = naj["krokow_na_sekunde"]
+        krzywe[opis] = krzywa
+        wiersze.append(k)
+
+    print()
+    _tabela(wiersze, [("wariant", "warianty", "<22"),
+                      ("D [B]", "D", ",d"),
+                      ("flopy/krok", "flopy_na_krok", ",.0f"),
+                      ("bajty/krok", "bajty_na_krok", ",.0f"),
+                      ("jadra", "jadra", "d"),
+                      ("B najlepszy", "B_najlepszy", "d"),
+                      ("szczyt krokow/s", "szczyt", ",.0f")])
+
+    if len(wiersze) == 2 and all("szczyt" in w for w in wiersze):
+        m, g = wiersze
+        print(f"\n  odczyt sasiadow wobec macierzy:")
+        print(f"    operacje      x{g['flopy_na_krok'] / m['flopy_na_krok']:.3f}")
+        print(f"    bajty         x{g['bajty_na_krok'] / m['bajty_na_krok']:.3f}")
+        print(f"    przepustowosc x{g['szczyt'] / m['szczyt']:.3f}")
+        print(f"    optimum       {m['B_najlepszy']} -> {g['B_najlepszy']}"
+              f"  (x{g['B_najlepszy'] / m['B_najlepszy']:.2f})")
+        print()
+        if g["B_najlepszy"] > m["B_najlepszy"] * 1.15:
+            print("  OPTIMUM SIE PRZESUNELO. Fala zasiegu faktycznie wyznaczala")
+            print("  prog rezydencji, a wersja z odczytem sasiadow jest po")
+            print("  prostu lepsza - ta sama gra, wiekszy wsad optymalny.")
+        else:
+            print("  Optimum zostalo na miejscu. Fala zasiegu NIE wyznacza")
+            print("  progu, choc kosztuje operacje. Trzeba szukac dalej -")
+            print("  najblizszy krok to liczniki dla obu wariantow i")
+            print("  porownanie sladow przez narzedzia/analiza_progu.py.")
+
+    zapisz(_sciezka("zasieg"), {"otoczenie": otoczenie(),
+                                "wiersze": wiersze,
+                                "krzywe": krzywe})
+    return 0
+
+
+# ===========================================================================
 # 6b. KOSZT WZNAWIANIA EPIZODOW
 # ===========================================================================
 
@@ -1043,6 +1143,14 @@ def main(argv=None):
     s.add_argument("--tryby", nargs="+", default=["zachlanny", "losowy"],
                    choices=["zachlanny", "losowy"])
     s.set_defaults(fn=cmd_akcje)
+
+    s = wspolne(pod.add_parser("zasieg",
+                               help="czy fala zasiegu wyznacza prog L2"),
+                2048)
+    s.add_argument("--preset", default="odniesienie")
+    s.add_argument("--wsady", nargs="+", type=int,
+                   default=[1536, 2048, 2304, 2560, 3072, 3584, 4096, 5120])
+    s.set_defaults(fn=cmd_zasieg)
 
     s = wspolne(pod.add_parser("wznawianie",
                                help="koszt bezwarunkowego wznawiania epizodow"),

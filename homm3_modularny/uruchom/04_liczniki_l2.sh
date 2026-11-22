@@ -46,6 +46,9 @@ else
   KROKOW=${KROKOW:-5}
 fi
 PRESET=${PRESET:-III_II}
+GATHER=${GATHER:-0}
+# fala zasiegu odczytem sasiadow: ta sama gra, inny slad pamieciowy
+DODATKI=(); [[ "$GATHER" == "1" ]] && DODATKI=(--gather)
 METRYKI="gpu__time_duration.sum,lts__t_sector_hit_rate.pct,dram__bytes.sum.per_second,l1tex__t_sector_hit_rate.pct"
 
 command -v ncu >/dev/null || {
@@ -88,7 +91,7 @@ for K in $KANALY; do
   echo "--- szukam jadra, ktore decyduje o czasie kroku"
   ncu --metrics gpu__time_duration.sum --csv --target-processes all \
       python3 narzedzia/krotki_przebieg.py --preset "$PRESET" --kanaly "$K" \
-          --wsad 2048 --kroki 3 \
+          "${DODATKI[@]}" --wsad 2048 --kroki 3 \
       > "$KAT/jadra.csv" 2>"$KAT/jadra.log" || true
 
   python3 narzedzia/najwazniejsze_jadro.py "$KAT/jadra.csv" \
@@ -103,7 +106,7 @@ for K in $KANALY; do
            --cache-control none --metrics "$METRYKI" \
            --csv --target-processes all \
            python3 narzedzia/krotki_przebieg.py --preset "$PRESET" \
-               --kanaly "$K" --wsad "$B" --kroki "$KROKOW" \
+               "${DODATKI[@]}" --kanaly "$K" --wsad "$B" --kroki "$KROKOW" \
            > "$KAT/ncu_${B}.csv" 2>"$KAT/ncu_${B}.log"; then
       echo "ok"
     else
