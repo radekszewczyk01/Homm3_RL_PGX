@@ -1087,6 +1087,11 @@ def main(argv=None):
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--wyniki", default=KATALOG_WYNIKOW,
                    help="katalog na pliki JSON")
+    p.add_argument("--gather", action="store_true",
+                   help="fala zasiegu odczytem sasiadow zamiast gesta "
+                        "macierza - ta sama gra, inny slad pamieciowy. "
+                        "Dziala dla KAZDEJ podkomendy, bo podmienia "
+                        "rozwiazywanie presetow w jednym miejscu.")
     pod = p.add_subparsers(dest="komenda", required=True)
 
     def wspolne(sp, wsad=1024):
@@ -1213,6 +1218,28 @@ def main(argv=None):
     args = p.parse_args(argv)
     KATALOG_WYNIKOW = args.wyniki
     os.makedirs(KATALOG_WYNIKOW, exist_ok=True)
+
+    # Globalne --gather. Podmieniamy funkcje rozwiazujaca presety, zeby nie
+    # dokladac flagi do kazdej podkomendy osobno - i zeby nie moglo sie
+    # powtorzyc to, co sie juz raz zdarzylo: polecenie
+    #   WSADY="..." GATHER=1 ./uruchom/02_czasowe.sh
+    # przeliczylo caly etap na wariancie GESTYM, bo --gather nie bylo tam
+    # wcale obslugiwane, a wynik wygladal poprawnie.
+    if args.gather:
+        _preset_gesty = preset
+
+        def _preset_gatherem(nazwa):
+            k = _preset_gesty(nazwa)
+            return dataclasses.replace(k, zasieg_gatherem=True,
+                                       nazwa=f"{k.nazwa}_gather")
+
+        globals()["preset"] = _preset_gatherem
+        print("=" * 70, file=sys.stderr)
+        print("FALA ZASIEGU: ODCZYT SASIADOW (--gather)", file=sys.stderr)
+        print("Ta sama gra, inna implementacja. Liczby z tego przebiegu NIE",
+              file=sys.stderr)
+        print("SA porownywalne z przebiegiem bez --gather.", file=sys.stderr)
+        print("=" * 70, file=sys.stderr)
 
     # Na standardowe wyjscie BLEDOW, nie wyjscie zwykle. Podkomenda `stan
     # --json` jest przekierowywana do pliku, a ta linia trafiala wtedy do

@@ -77,6 +77,19 @@ DOMYSLNE = ("chess", "go_19x19", "shogi", "go_9x9")
 # rozmiar stanu: suma bajtow wszystkich lisci drzewa stanu dla JEDNEGO wsadu
 # ---------------------------------------------------------------------------
 
+def kps(w):
+    """Przepustowosc pod oboma nazwami, jakie wystepuja w plikach wynikow.
+
+    Nasz `pomiar.przepustowosc` zwraca 'krokow_na_sekunde', a ten skrypt
+    liczy sam i zapisuje 'krokow_na_s'. Raz juz wywalilo sie to na tej
+    roznicy, wiec czytamy obie nazwy w jednym miejscu.
+    """
+    for k in ("krokow_na_sekunde", "krokow_na_s"):
+        if k in w:
+            return w[k]
+    return None
+
+
 def rozmiar_stanu(stan, B):
     """Bajty na jedno srodowisko.
 

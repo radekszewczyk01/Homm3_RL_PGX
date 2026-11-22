@@ -19,8 +19,33 @@ if [[ "${PROBNIE:-0}" == "1" ]]; then
 else
   SEKUNDY=${SEKUNDY:-20}; GIER=${GIER:-30}; KROKI=${KROKI:-50}
   POWT=${POWT:-5}; POWT_BRAMA=${POWT_BRAMA:-8}
-  WSADY_ODN=${WSADY_ODN:-"1024 1280 1536 1792 2048 2176 2304 2560 3072 4096"}
+  # WSADY jest aliasem na WSADY_ODN. Raz juz poszlo polecenie
+  #   WSADY="..." GATHER=1 ./uruchom/02_czasowe.sh
+  # i NIC z tego nie zadzialalo: skan uzywal WSADY_ODN, a --gather nie bylo
+  # tu wcale obslugiwane. Caly etap przeliczyl sie na wariancie gestym, na
+  # domyslnym zakresie, i wygladalo to jak poprawny wynik.
+  WSADY_ODN=${WSADY_ODN:-${WSADY:-"1024 1280 1536 1792 2048 2176 2304 2560 3072 4096"}}
   WSADY_REZ=${WSADY_REZ:-"512 640 768 896 1024 1152 1280 1536 1792 2048 2304 2560"}
+fi
+
+# fala zasiegu odczytem sasiadow: ta sama gra, inny slad pamieciowy
+GATHER=${GATHER:-0}
+DODATKI=(); [[ "$GATHER" == "1" ]] && DODATKI=(--gather)
+echo
+echo "================================================================"
+if [[ "$GATHER" == "1" ]]; then
+  echo " FALA ZASIEGU: ODCZYT SASIADOW (--gather)"
+  echo " Liczby z tego przebiegu NIE SA porownywalne z przebiegiem"
+  echo " bez GATHER=1 - to dwie rozne implementacje tej samej funkcji."
+else
+  echo " FALA ZASIEGU: GESTA MACIERZ (domyslnie)"
+  echo " Wariant z odczytem sasiadow:  GATHER=1 ./uruchom/02_czasowe.sh"
+fi
+echo " zakres wsadow (etap 3): $WSADY_ODN"
+echo "================================================================"
+
+if false; then
+  :
   KANALY=${KANALY:-"0 9 18"}; WSAD_ABL=${WSAD_ABL:-2048}
   OGRANICZ=()
 fi
@@ -41,14 +66,14 @@ echo
 echo "### 3/5  krzywa przepustowosci dla konfiguracji odniesienia"
 echo "###      szczyt ma wypasc przy wsadzie okolo 2048, a za nim zalamanie"
 python3 eksperymenty.py --wyniki "$WYNIKI" klasa2 \
-    --preset odniesienie --kanaly 0 \
+    --preset odniesienie --kanaly 0 "${DODATKI[@]}" \
     --wsady $WSADY_ODN --kroki "$KROKI" --powtorzenia "$POWT"
 
 echo
 echo "### 4/5  TEST REGULY PROJEKTOWEJ: rosnacy D ma przesuwac optimum w dol"
 echo "###      przewidywania: D x1.00 -> 1819,  x1.50 -> 1211,  x2.00 -> 908"
 python3 eksperymenty.py --wyniki "$WYNIKI" klasa2 \
-    --preset III_II --kanaly $KANALY \
+    --preset III_II --kanaly $KANALY "${DODATKI[@]}" \
     --wsady $WSADY_REZ --kroki "$KROKI" --powtorzenia "$POWT"
 
 echo
