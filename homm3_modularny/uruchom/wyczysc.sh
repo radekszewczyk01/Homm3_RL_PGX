@@ -73,30 +73,67 @@ if [[ "$PYTAJ" == "1" ]]; then
   [[ "$ODP" == "t" || "$ODP" == "T" ]] || { echo "Przerwane."; exit 1; }
 fi
 
-# Jedno wejscie do kontenera na wszystko. Zmienne idą przez srodowisko, zeby
-# nazwy katalogow nie przechodzily przez interpretacje powloki wewnatrz -c.
+# Jedno wejscie do kontenera na wszystko.
+#
+# SCIEZKI IDA JAKO ARGUMENTY, NIE PRZEZ SRODOWISKO.
+#
+# Pierwsza wersja tego skryptu przekazywala liste katalogow zmienna
+# srodowiskowa - i nie dzialala, bo `docker run` NIE DZIEDZICZY srodowiska,
+# a tej zmiennej nie ma na liscie przepuszczanych w w_dockerze.sh. W
+# kontenerze lista byla pusta, petla nie wykonala sie ani raz, nic nie
+# zostalo usuniete, a skrypt wypisal "Gotowe". Dokladnie ta pulapka, o
+# ktorej jest akapit w sekcji o pulapkach pomiarowych.
+#
+# Argumenty takiego problemu nie maja: one SA komenda kontenera.
+# Uwaga na konwencje `bash -c SKRYPT $0 $1 ...` - pierwszy argument po
+# skrypcie staje sie $0, dlatego jest tam "wyczysc".
 if [[ "$ODDAJ" == "1" ]]; then
-  KATALOGI_LISTA="${KATALOGI[*]}" \
-  CEL="$(id -u):$(id -g)" \
   ./uruchom/w_dockerze.sh bash -c '
-    for k in $KATALOGI_LISTA; do
-      [[ -e "$k" ]] && chown -R "$CEL" "$k" && echo "  oddane: $k"
-    done'
+    CEL="$1"; shift
+    for k in "$@"; do
+      if [[ -e "$k" ]]; then
+        chown -R "$CEL" "$k" && echo "  oddane: $k"
+      else
+        echo "  nie ma: $k"
+      fi
+    done' wyczysc "$(id -u):$(id -g)" "${KATALOGI[@]}"
 else
-  KATALOGI_LISTA="${KATALOGI[*]}" \
   ./uruchom/w_dockerze.sh bash -c '
-    for k in $KATALOGI_LISTA; do
-      [[ -e "$k" ]] && rm -rf -- "$k" && echo "  usuniete: $k"
-    done'
+    for k in "$@"; do
+      if [[ -e "$k" ]]; then
+        rm -rf -- "$k" && echo "  usuniete: $k"
+      else
+        echo "  nie ma: $k"
+      fi
+    done' wyczysc "${KATALOGI[@]}"
 fi
 
 echo
-echo "Gotowe. Sprawdzenie:"
+echo "Sprawdzenie (na hoscie, po wyjsciu z kontenera):"
+ZLE=0
 for k in "${KATALOGI[@]}"; do
   if [[ -e "$k" ]]; then
     ROOTA=$(find "$k" -type f -uid 0 2>/dev/null | wc -l)
     printf '  %-24s istnieje, plikow roota: %s\n' "$k" "$ROOTA"
+    [[ "$ODDAJ" == "1" && "$ROOTA" != "0" ]] && ZLE=1
+    [[ "$ODDAJ" != "1" ]] && ZLE=1
   else
     printf '  %-24s usuniety\n' "$k"
+    [[ "$ODDAJ" == "1" ]] && ZLE=1
   fi
 done
+
+# Kontrola nie jest ozdoba: pierwsza wersja tego skryptu wypisywala "Gotowe"
+# po tym, jak nie zrobila nic. Jesli stan po wyjsciu nie zgadza sie z tym, o
+# co proszono, mowimy to wprost i konczymy bledem.
+echo
+if [[ "$ZLE" == "1" ]]; then
+  if [[ "$ODDAJ" == "1" ]]; then
+    echo "BLAD: po oddaniu nadal sa pliki roota albo katalog zniknal."
+  else
+    echo "BLAD: prosilem o usuniecie, a katalogi nadal istnieja."
+  fi
+  echo "Nic nie zakladaj - sprawdz recznie:  ls -la ${KATALOGI[0]}"
+  exit 1
+fi
+echo "Gotowe, stan zgodny z tym, o co proszono."

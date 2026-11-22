@@ -14,11 +14,19 @@ source uruchom/00_srodowisko.sh
 if [[ "${PROBNIE:-0}" == "1" ]]; then
   echo "### PRZEBIEG PROBNY - wyniki bez wartosci, sprawdzamy tylko, ze dziala"
   SEKUNDY=3; GIER=2; KROKI=2; POWT=2; POWT_BRAMA=2
+  # Brama tego skryptu (etap 2) mierzy PELNA liczba krokow takze w trybie
+  # probnym. Przy KROKI=2 porownanie z praca nie ma sensu - mierzy sie wtedy
+  # w 14 procentach narzut wywolania - i brama odrzucala caly etap, choc
+  # silnik byl w porzadku. Sam pomiar tez juz o tym wie i wtedy nie wydaje
+  # werdyktu, ale tutaj chcemy werdykt MIEC, bo to jedyne miejsce w
+  # przebiegu probnym, gdzie cokolwiek o przepustowosci da sie powiedziec.
+  KROKI_BRAMA=50
   WSADY_ODN="128 256"; WSADY_REZ="64 128"; KANALY="0 9"; WSAD_ABL=8
   OGRANICZ=(--max-konfiguracji 2)
 else
   SEKUNDY=${SEKUNDY:-20}; GIER=${GIER:-30}; KROKI=${KROKI:-50}
   POWT=${POWT:-5}; POWT_BRAMA=${POWT_BRAMA:-8}
+  KROKI_BRAMA=${KROKI_BRAMA:-$KROKI}
   # WSADY jest aliasem na WSADY_ODN. Raz juz poszlo polecenie
   #   WSADY="..." GATHER=1 ./uruchom/02_czasowe.sh
   # i NIC z tego nie zadzialalo: skan uzywal WSADY_ODN, a --gather nie bylo
@@ -66,7 +74,7 @@ echo
 echo "### 2/5  czy nowa petla pomiarowa odtwarza 371 011 krokow/s z pracy"
 echo "###      rozbieznosc tutaj uniewaznia KAZDA liczbe czasowa ponizej"
 python3 eksperymenty.py --wyniki "$WYNIKI" zgodnosc --gier "$GIER" --czas \
-    --kroki "$KROKI" --powtorzenia "$POWT_BRAMA"
+    --kroki "$KROKI_BRAMA" --powtorzenia "$POWT_BRAMA"
 
 echo
 echo "### 3/5  krzywa przepustowosci dla konfiguracji odniesienia"

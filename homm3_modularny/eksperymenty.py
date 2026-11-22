@@ -86,6 +86,27 @@ OCZEKIWANE_ODNIESIENIE = dict(D=10479, A=1322, kanalow=12,
 # skryptem benchark.py, wiec ta sama liczba z nowej warstwy pomiarowej jest
 # jednoczesnie sprawdzeniem, czy nowa petla pomiarowa mierzy to samo.
 KROKOW_NA_SEKUNDE_Z_PRACY = 371_011
+
+# Ponizej tej liczby krokow na jedno wywolanie scan porownanie z praca NIE MA
+# SENSU i brama go nie wydaje.
+#
+# Czas wywolania to narzut staly plus kroki razy koszt kroku. Na karcie, na
+# ktorej to mierzymy, narzut wynosi okolo 1,85 ms, a koszt kroku przy wsadzie
+# 2048 okolo 5,67 ms. Czyli:
+#
+#     kroki=2    narzut to 14,1% wywolania  ->  stosunek do pracy 0,84
+#     kroki=5    narzut to  6,1%            ->  0,91
+#     kroki=10   narzut to  3,2%            ->  0,94
+#     kroki=20   narzut to  1,6%            ->  0,96
+#     kroki=50   narzut to  0,6%            ->  0,97
+#
+# Brama z tolerancja 10 procent odrzuca wiec KAZDY przebieg probny, mimo ze
+# silnik jest w porzadku - i zdarzylo sie to dwa razy, raz w kolejce i raz
+# wewnatrz 02_czasowe.sh, ktory ma wlasna brame. Zamiast poprawiac to w
+# kazdym wywolaniu osobno, wie o tym sam pomiar.
+MIN_KROKOW_DO_POROWNANIA = 20
+NARZUT_WYWOLANIA_MS = 1.853     # zmierzone na tej karcie, patrz wyzej
+KOSZT_KROKU_MS = 5.668          # na krok przy wsadzie 2048
 WSAD_Z_PRACY = 2048
 TOLERANCJA_PRZEPUSTOWOSCI = 0.10
 
@@ -152,11 +173,34 @@ def cmd_zgodnosc(args):
               f"(+-{pomiar_czasu['odchylenie_pct']:.1f}%)")
         print(f"    z pracy    {KROKOW_NA_SEKUNDE_Z_PRACY:>12,} krokow/s")
         print(f"    stosunek   {stosunek:>12.3f}")
-        zgoda_czasu = abs(stosunek - 1.0) <= TOLERANCJA_PRZEPUSTOWOSCI
+
         pomiar_czasu["stosunek_do_pracy"] = stosunek
-        pomiar_czasu["zgoda"] = bool(zgoda_czasu)
-        if zgoda_czasu:
+        pomiar_czasu["krokow"] = args.kroki
+
+        if args.kroki < MIN_KROKOW_DO_POROWNANIA:
+            # Przy tak malej liczbie krokow mierzymy w duzej czesci narzut
+            # wywolania, nie silnik - wiec nie wydajemy werdyktu. Liczba
+            # zostaje wypisana, zeby bylo widac, ze pomiar sie wykonal, a
+            # reszta bramy wykonuje sie normalnie, bo nie zalezy od czasu.
+            udzial = 100 * NARZUT_WYWOLANIA_MS / (
+                NARZUT_WYWOLANIA_MS + args.kroki * KOSZT_KROKU_MS)
+            print(f"    BEZ WERDYKTU: {args.kroki} krokow na wywolanie to za "
+                  f"malo, zeby to porownywac.")
+            print(f"    Przy tej liczbie narzut wywolania to okolo "
+                  f"{udzial:.0f}% czasu, czyli zmierzona")
+            print(f"    przepustowosc jest systematycznie zanizona. Potrzeba "
+                  f"co najmniej")
+            print(f"    {MIN_KROKOW_DO_POROWNANIA} krokow, zeby narzut spadl "
+                  f"ponizej dwoch procent.")
+            print("    Pozostale sprawdzenia tej bramy obowiazuja normalnie.")
+            pomiar_czasu["zgoda"] = None
+            pomiar_czasu["powod_braku_werdyktu"] = (
+                f"kroki={args.kroki} < {MIN_KROKOW_DO_POROWNANIA}")
+            zgoda_czasu = True
+        elif abs(stosunek - 1.0) <= TOLERANCJA_PRZEPUSTOWOSCI:
             print("    OK   nowa petla pomiarowa mierzy to samo co benchark.py")
+            pomiar_czasu["zgoda"] = True
+            zgoda_czasu = True
         else:
             print("    UWAGA roznica ponad "
                   f"{100 * TOLERANCJA_PRZEPUSTOWOSCI:.0f}%. Zanim uznasz to "
@@ -171,6 +215,9 @@ def cmd_zgodnosc(args):
             print("    Rozbieznosc tutaj NIE uniewaznia liczb z kompilatora,")
             print("    ale uniewaznia kazda liczbe czasowa z tego "
                   "repozytorium.")
+            pomiar_czasu["zgoda"] = False
+            zgoda_czasu = False
+
         ok &= zgoda_czasu
 
     # Pula awaryjna uniewaznia porownanie z praca: inna liczba stworow, inne
