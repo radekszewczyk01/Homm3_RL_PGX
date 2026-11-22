@@ -47,6 +47,18 @@ else
 fi
 PRESET=${PRESET:-III_II}
 GATHER=${GATHER:-0}
+
+# Caly przebieg ladujemy do podkatalogu nazwanego presetem i wariantem.
+# Podkatalog, a nie przyrostek w nazwie, bo wykres_rezydencji.py szuka
+# katalogow wzorcem liczniki_k* - przyrostek by go rozsypal, a podkatalog
+# wystarczy podac jako --katalog i skrypt dziala bez zmian.
+ETYKIETA="${PRESET}"; [[ "$GATHER" == "1" ]] && ETYKIETA="${ETYKIETA}_gather"
+SKAN="$WYNIKI/skan_${ETYKIETA}"
+mkdir -p "$SKAN"
+echo "katalog tego skanu: $SKAN"
+echo "  (preset i wariant sa w nazwie, wiec kolejny przebieg z innym"
+echo "   presetem NIE nadpisze tego - a nadpisalby, gdyby nazwa byla stala)"
+
 # fala zasiegu odczytem sasiadow: ta sama gra, inny slad pamieciowy
 DODATKI=(); [[ "$GATHER" == "1" ]] && DODATKI=(--gather)
 METRYKI="gpu__time_duration.sum,lts__t_sector_hit_rate.pct,dram__bytes.sum.per_second,l1tex__t_sector_hit_rate.pct"
@@ -61,29 +73,36 @@ command -v ncu >/dev/null || {
 echo "rozmiary stanu dla tego skanu:"
 python3 eksperymenty.py stan --preset "$PRESET" --kanaly $KANALY
 python3 eksperymenty.py stan --preset "$PRESET" --kanaly $KANALY --json \
-    > "$WYNIKI/rozmiary_stanu.json"
+    > "$SKAN/rozmiary_stanu.json"
 
 # Sprawdzamy TERAZ, a nie na koncu. Raz juz ten plik wyszedl uszkodzony
 # i dowiedzielismy sie o tym po czterdziestu siedmiu minutach zbierania
 # licznikow, przy rysowaniu wykresu. Sekunda tutaj zamiast godziny tam.
 python3 -c "
 import json, sys
-d = json.load(open('$WYNIKI/rozmiary_stanu.json'))
+d = json.load(open('$SKAN/rozmiary_stanu.json'))
 assert isinstance(d, list) and d, 'puste'
 assert all('D' in w and 'kanalow_dodanych' in w for w in d), 'brak pol'
 print('  rozmiary stanu zapisane poprawnie: ' +
       ', '.join(f\"k{w['kanalow_dodanych']}={w['D']}B\" for w in d))
 " || {
   echo
-  echo "Plik $WYNIKI/rozmiary_stanu.json jest uszkodzony. Pierwsze linie:"
-  head -3 "$WYNIKI/rozmiary_stanu.json" | sed 's/^/  /'
+  echo "Plik $SKAN/rozmiary_stanu.json jest uszkodzony. Pierwsze linie:"
+  head -3 "$SKAN/rozmiary_stanu.json" | sed 's/^/  /'
   echo
   echo "Bez niego wykres i tak sie nie policzy, wiec nie zbieram licznikow."
   exit 1
 }
 
+# ETYKIETA PRZEBIEGU wchodzi do nazwy katalogu: preset ORAZ wariant. Bez tego CSV-ki wariantu gestego i
+# indeksowanego trafiaja do tego samego miejsca, wykres laczy dwie
+# implementacje i NIC tego nie zdradza w wyniku - bo pliki nazywaja sie
+# ncu_${B}.csv w obu przypadkach, a brakujace wsady uzupelniaja sie z
+# poprzedniego przebiegu. Raz juz tabela powstala z dwoch przebiegow
+# zlozonych w jeden i tylko przypadek sprawil, ze oba byly tym samym
+# wariantem.
 for K in $KANALY; do
-  KAT="$WYNIKI/liczniki_k${K}"
+  KAT="$SKAN/liczniki_k${K}"
   mkdir -p "$KAT"
 
   echo
@@ -117,8 +136,11 @@ done
 
 echo
 echo "=== wykresy i tabela ==============================================="
-python3 narzedzia/wykres_rezydencji.py --katalog "$WYNIKI" \
-    --rozmiary "$WYNIKI/rozmiary_stanu.json" --wyjscie rysunki
+python3 narzedzia/wykres_rezydencji.py --katalog "$SKAN" \
+    --rozmiary "$SKAN/rozmiary_stanu.json" --wyjscie "rysunki/${ETYKIETA}"
 
 echo
-echo "gotowe. Surowe CSV w $WYNIKI/liczniki_k*/, rysunki w rysunki/"
+echo "gotowe."
+echo "  surowe CSV:  $SKAN/liczniki_k*/"
+echo "  rysunki:     rysunki/${ETYKIETA}/"
+echo "  dane:        $SKAN/rezydencja.json"

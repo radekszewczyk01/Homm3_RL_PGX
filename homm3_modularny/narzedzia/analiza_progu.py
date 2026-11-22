@@ -48,7 +48,13 @@ def bajty_jadra(punkt):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--plik", nargs="+", default=["wyniki/rezydencja.json"],
+    # Domyslnie zbieramy wszystkie skany, bo 04_liczniki_l2.sh zapisuje
+    # teraz kazdy do wlasnego podkatalogu nazwanego presetem i wariantem -
+    # inaczej drugi przebieg nadpisywal pierwszy.
+    p.add_argument("--plik", nargs="+",
+                   default=(sorted(__import__("glob").glob(
+                       "wyniki/skan_*/rezydencja.json"))
+                       or ["wyniki/rezydencja.json"]),
                    help="jeden albo wiele plikow rezydencja.json; podanie "
                         "kilku pozwala porownac rozne konfiguracje")
     p.add_argument("--prog-nasycenia", type=float, default=30.0,

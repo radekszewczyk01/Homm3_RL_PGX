@@ -692,6 +692,25 @@ def cmd_klasa2(args):
     _tabela(wiersze, kolumny)
 
     if args.wsady:
+        # Ostrzezenie o BRZEGU SKANU. Bez niego tabela wypisuje maksimum,
+        # ktore jest po prostu ostatnim zmierzonym punktem, i wyglada jak
+        # wynik. Tak przepadl caly przebieg testu skalowania D: zakres
+        # 512..2560 lezal W CALOSCI ponizej optimum wariantu indeksowanego,
+        # ktore wypada przy 8192. Tabela pokazala "B najlepszy = 2560" dla
+        # kazdego D, a komentarz pod nia sugerowal, ze regula nie przewiduje.
+        brzegi = (min(args.wsady), max(args.wsady))
+        na_brzegu = [w for w in wiersze
+                     if w.get("B_zmierzony_najlepszy") in brzegi]
+        if na_brzegu:
+            print()
+            for w in na_brzegu:
+                print(f"  UWAGA  dla D = {w['D']:,} maksimum wypadlo na "
+                      f"BRZEGU skanu (B = {w['B_zmierzony_najlepszy']}).")
+            print("         To jest ograniczenie zakresu, nie optimum."
+                  " Rozszerz --wsady w te strone,")
+            print("         inaczej kolumna 'B najlepszy' nie mowi nic"
+                  " o regule.")
+
         print("\n  Jesli kolumna 'B najlepszy' maleje tak jak 'B_opt z reguly',")
         print("  regula przewiduje. Jesli stoi w miejscu - dodany stan nie "
               "trafil")
