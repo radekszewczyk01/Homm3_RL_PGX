@@ -26,6 +26,8 @@ else
   # domyslnym zakresie, i wygladalo to jak poprawny wynik.
   WSADY_ODN=${WSADY_ODN:-${WSADY:-"1024 1280 1536 1792 2048 2176 2304 2560 3072 4096"}}
   WSADY_REZ=${WSADY_REZ:-"512 640 768 896 1024 1152 1280 1536 1792 2048 2304 2560"}
+  KANALY=${KANALY:-"0 9 18"}; WSAD_ABL=${WSAD_ABL:-2048}
+  OGRANICZ=()
 fi
 
 # fala zasiegu odczytem sasiadow: ta sama gra, inny slad pamieciowy
@@ -35,20 +37,24 @@ echo
 echo "================================================================"
 if [[ "$GATHER" == "1" ]]; then
   echo " FALA ZASIEGU: ODCZYT SASIADOW (--gather)"
-  echo " Liczby z tego przebiegu NIE SA porownywalne z przebiegiem"
-  echo " bez GATHER=1 - to dwie rozne implementacje tej samej funkcji."
+  echo " Liczby z etapow 3 i 4 NIE SA porownywalne z przebiegiem bez"
+  echo " GATHER=1 - to dwie rozne implementacje tej samej funkcji."
+  echo
+  echo " UWAGA, KTORE ETAPY CZEGO UZYWAJA:"
+  echo "   etap 2 (brama 371 tys.)   wariant GESTY - celowo, bo to jest"
+  echo "                             porownanie z praca, ktora miala gesty"
+  echo "   etap 3 (krzywa odniesienia)  odczyt sasiadow"
+  echo "   etap 4 (skalowanie D)        odczyt sasiadow"
+  echo "   etap 5 (ablacja, narastanie) wariant GESTY - te tabele maja"
+  echo "                             zostac spojne z sekcja o koszcie"
+  echo
+  echo " Pliki wynikow etapow 3 i 4 dostana przyrostek _gather."
 else
   echo " FALA ZASIEGU: GESTA MACIERZ (domyslnie)"
   echo " Wariant z odczytem sasiadow:  GATHER=1 ./uruchom/02_czasowe.sh"
 fi
 echo " zakres wsadow (etap 3): $WSADY_ODN"
 echo "================================================================"
-
-if false; then
-  :
-  KANALY=${KANALY:-"0 9 18"}; WSAD_ABL=${WSAD_ABL:-2048}
-  OGRANICZ=()
-fi
 
 echo
 echo "### 1/5  czy zegar karty nie jest zablokowany"

@@ -39,8 +39,16 @@ from homm3.rdzen import MAX_AKCJI_RDZENIA, MAX_UNITS
 KATALOG_WYNIKOW = "wyniki"
 
 
+# Przyrostek nazw plikow wynikow. Przy --gather jest "_gather", zeby
+# przebieg wariantu indeksowanego NIE NADPISAL wynikow wariantu gestego.
+# Bez tego `klasa2.json` - plik, na ktorym stoi cala sekcja o rezydencji,
+# z krzywa odniesienia i z testem skalowania D - zostalby zamieniony na
+# liczby innej implementacji, pod ta sama nazwa.
+PRZYROSTEK = ""
+
+
 def _sciezka(nazwa):
-    return os.path.join(KATALOG_WYNIKOW, f"{nazwa}.json")
+    return os.path.join(KATALOG_WYNIKOW, f"{nazwa}{PRZYROSTEK}.json")
 
 
 def _naglowek(tytul):
@@ -1236,7 +1244,9 @@ def main(argv=None):
     #   WSADY="..." GATHER=1 ./uruchom/02_czasowe.sh
     # przeliczylo caly etap na wariancie GESTYM, bo --gather nie bylo tam
     # wcale obslugiwane, a wynik wygladal poprawnie.
-    if args.gather:
+    if getattr(args, "gather", False):
+        global PRZYROSTEK
+        PRZYROSTEK = "_gather"
         _preset_gesty = preset
 
         def _preset_gatherem(nazwa):
@@ -1250,6 +1260,9 @@ def main(argv=None):
         print("Ta sama gra, inna implementacja. Liczby z tego przebiegu NIE",
               file=sys.stderr)
         print("SA porownywalne z przebiegiem bez --gather.", file=sys.stderr)
+        print(f"Pliki wynikow dostaja przyrostek {PRZYROSTEK}, zeby nie",
+              file=sys.stderr)
+        print("nadpisac wynikow wariantu gestego.", file=sys.stderr)
         print("=" * 70, file=sys.stderr)
 
     # Na standardowe wyjscie BLEDOW, nie wyjscie zwykle. Podkomenda `stan
