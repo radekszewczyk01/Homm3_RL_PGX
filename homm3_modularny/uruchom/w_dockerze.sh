@@ -120,6 +120,19 @@ WSPOLNE=(--rm -v "$KATALOG:$MONTAZ" -w "$MONTAZ")
 #
 # PRZEKAZ="A B" dorzuca wlasne nazwy, gdy jednorazowo potrzeba czegos
 # spoza tej listy.
+# UID i GID hosta, zeby kontener oddal pliki na wyjsciu - inaczej wyniki
+# naleza do roota i uzytkownik nie moze ich usunac ani nadpisac ("rm:
+# Permission denied" na wlasnym katalogu wynikow). Uruchamianie kontenera
+# jako --user nie przechodzi, bo ncu potrzebuje uprawnien, ktore z tym nie
+# wspolgraja - wiec zostajemy rootem, a pliki oddajemy na wyjsciu.
+WSPOLNE+=(-e "HOST_UID=$(id -u)" -e "HOST_GID=$(id -g)")
+
+# Punkt wejscia jest TEN SAM dla kazdej drogi do karty, nie tylko dla
+# recznego wstrzykniecia. Wczesniej ustawialismy go wylacznie tam, wiec
+# oddawanie plikow dzialaloby na jednej drodze, a na dwoch pozostalych nie -
+# i roznica wyszlaby dopiero przy pierwszym 'rm'.
+WSPOLNE+=(--entrypoint "$WRAPPER_KONTENER")
+
 ZMIENNE_ETAPOW=(
   PROBNIE DETERMINISTYCZNIE WYNIKI GATHER
   PRESET PRESETY KANALY WSADY KROKOW KROKI POWT POWT_BRAMA GIER SEKUNDY
@@ -241,7 +254,7 @@ zbuduj_argumenty_recznie() {
     chmod +x "$WRAPPER_HOST" 2>/dev/null \
       || { BRAKUJACE+=("$WRAPPER_HOST (nie jest wykonywalny: chmod +x)"); }
   fi
-  ARGUMENTY_RECZNE+=(--entrypoint "$WRAPPER_KONTENER")
+  # punkt wejscia ustawiony raz, w WSPOLNE - dla wszystkich drog
   [[ "$KARTA" != "all" ]] && ARGUMENTY_RECZNE+=(-e CUDA_VISIBLE_DEVICES=0)
   return 0
 }

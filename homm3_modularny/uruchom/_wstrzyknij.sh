@@ -24,4 +24,23 @@ export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY
 # nie zobaczyc. Dziala bez roota, bo w kontenerze jestesmy rootem.
 ldconfig 2>/dev/null || true
 
+# ODDANIE PLIKOW WLASCICIELOWI KATALOGU.
+#
+# W kontenerze jestesmy rootem, wiec wszystko, co tu powstanie w zamontowanym
+# katalogu, nalezy na hoscie do roota - i uzytkownik nie moze potem nawet
+# usunac wlasnych wynikow ("Permission denied" na rm). Obejscie przez
+# uruchamianie kontenera jako --user nie przechodzi, bo ncu potrzebuje
+# uprawnien, ktore z tym nie wspolgraja.
+#
+# Wiec zamiast tego: policz, co trzeba, a na wyjsciu oddaj pliki. Kod wyjscia
+# komendy musi przezyc, bo kolejka na nim polega przy ocenie etapu.
+if [[ -n "${HOST_UID:-}" && -n "${HOST_GID:-}" ]]; then
+  "$@"
+  KOD=$?
+  for KAT in wyniki wyniki_* rysunki tabele; do
+    [[ -e "$KAT" ]] && chown -R "$HOST_UID:$HOST_GID" "$KAT" 2>/dev/null || true
+  done
+  exit $KOD
+fi
+
 exec "$@"
