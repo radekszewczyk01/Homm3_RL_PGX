@@ -767,9 +767,24 @@ def zadaj_obrazenia(state: BattleState, dfn, dmg):
     survives = (remaining > 0) & state.alive[dfn]
     trafiony = (dmg > 0) & state.alive[dfn]
 
+    # Sufit CALKOWITY, nie przez float. Zapis `ceil(a / b)` wyglada niewinnie,
+    # ale XLA na karcie nie dzieli - mnozy przez przyblizona odwrotnosc. Dla
+    # a = 90, b = 30 daje to 3.0000002, a sufit z tego jest 4. Liczebnosc
+    # stosu rosla wiec o jeden przy KAZDYM przeliczeniu stosu o pelnym
+    # zyciu - i niezmiennik zglaszal "wysysanie zycia przekroczylo pulap",
+    # choc wysysania nie bylo w puli ani razu.
+    #
+    # Trafialo to 6,3 procent par (liczebnosc, zdrowie) w typowym zakresie,
+    # ale tylko wtedy, gdy zycie bylo dokladna wielokrotnoscia zdrowia
+    # jednostki - czyli przede wszystkim stosy nietkniete. Dlatego ujawnilo
+    # sie wylacznie przy czarach atakujacych: czar przechodzi przez WSZYSTKIE
+    # stosy, zadajac nietrafionym zero obrazen, i kazdy taki stos przechodzi
+    # przez to przeliczenie. Na procesorze XLA dzieli dokladnie i bledu nie ma,
+    # co jest osobna nauczka: ten pomiar musial pojsc na karte, zeby peknac.
+    mh = jnp.maximum(state.max_hp[dfn], 1)
     new_count = jnp.where(
         survives,
-        jnp.ceil(remaining / jnp.maximum(state.max_hp[dfn], 1)).astype(jnp.int32),
+        (remaining + mh - 1) // mh,
         jnp.where(trafiony, 0, state.count[dfn]))
     new_hp = jnp.where(survives,
                        remaining - (new_count - 1) * state.max_hp[dfn],

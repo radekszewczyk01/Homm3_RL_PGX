@@ -112,7 +112,63 @@ def sprawdz_pule():
     print(f"\n  najwyzsza szybkosc w puli: "
           f"{int(pula[:, rdzen.P_SPD].max())}  "
           f"(tyle wystarczy iteracji fali zasiegu)")
+
+    porownaj_z_surowa()
     return not zle
+
+
+def porownaj_z_surowa(vmin=60.0, vmax=700.0):
+    """Zdolnosc o zerowej liczbie nosicieli: wyciely ja filtr, czy jej nie ma?
+
+    `load_pool` bierze tylko stwory o wartosci dla komputera z przedzialu
+    [vmin, vmax], bo skrajnosci psuja balans losowanych armii. Zdolnosc moze
+    wiec miec zero nosicieli z dwoch calkiem roznych przyczyn:
+
+      a) nosiciele sa w tablicy, ale wypadli przez filtr wartosci,
+      b) kolumna tej zdolnosci jest zerowa w calej tablicy, czyli przy
+         przygotowaniu danych nikt jej nie wczytal z pliku zrodlowego.
+
+    Pierwsza to decyzja projektowa i wystarczy ja opisac. Druga to brak
+    w danych i trzeba poprawic `main.py`. Roznica jest widoczna od razu,
+    gdy policzymy nosicieli PRZED filtrem i PO nim.
+    """
+    from homm3.rdzen import Stat
+
+    if rdzen.POOL_AWARYJNA:
+        return
+    try:
+        lut = np.load(rdzen.POOL_ZRODLO)
+    except (OSError, ValueError) as e:
+        print(f"\n  (nie moge odczytac surowej tablicy: {e})")
+        return
+
+    w_oknie = ((lut[:, Stat.HP] > 0)
+               & (lut[:, Stat.AI_VALUE] >= vmin)
+               & (lut[:, Stat.AI_VALUE] <= vmax))
+
+    print(f"\n  PRZED filtrem wartosci [{vmin:g}, {vmax:g}] tablica ma "
+          f"{lut.shape[0]} stworow, po filtrze {int(w_oknie.sum())}.")
+    print("  nosiciele zdolnosci przed filtrem -> po filtrze:")
+
+    zdolnosci = (("oddech", Stat.BREATH_ATTACK), ("trojglowy", Stat.THREE_HEADED),
+                 ("dookolny", Stat.ALL_AROUND), ("wyssanie", Stat.LIFE_DRAIN),
+                 ("powrot", Stat.RETURN_AFTER_STRIKE),
+                 ("podwojny_atak", Stat.DOUBLE_ATTACK),
+                 ("bez_kontrataku", Stat.NO_RETALIATION),
+                 ("bez_kary_zwarcia", Stat.NO_MELEE_PENALTY))
+
+    for nazwa, kol in zdolnosci:
+        ma = lut[:, kol] > 0
+        przed, po = int(ma.sum()), int((ma & w_oknie).sum())
+        if przed == 0:
+            uwaga = "   <-- NIE MA JEJ W DANYCH, popraw przygotowanie tablicy"
+        elif po == 0:
+            wart = lut[ma][:, Stat.AI_VALUE]
+            uwaga = (f"   <-- wyciely przez filtr; wartosci nosicieli "
+                     f"{wart.min():.0f}..{wart.max():.0f}")
+        else:
+            uwaga = ""
+        print(f"    {nazwa:<18} {przed:4d} -> {po:4d}{uwaga}")
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +210,56 @@ def dekoduj(a, kfg):
     return f"czar {s} na heks {h}"
 
 
-def odtworz(preset, gier, ziarno, maks_krokow):
+def zaloz_sledzenie():
+    """Oplata kazde miejsce, ktore moze zmienic liczebnosc stosu.
+
+    Liczebnosc i zycie czola sa jedna liczba zapisana na dwa sposoby:
+        zycie_razem = (liczebnosc - 1) * max_hp + zycie_czola
+    i para musi byc KANONICZNA, czyli zycie_czola z przedzialu [1, max_hp].
+    Para (4, 0) przy max_hp 30 opisuje te same 90 punktow co (3, 30), ale
+    jest zapisem niekanonicznym - i to ona wywala niezmiennik, bo liczebnosc
+    wychodzi ponad poczatkowa, choc zaden stwor nie zmartwychwstal.
+
+    `jax.debug.print` dziala wewnatrz jit i wewnatrz fori_loop, wiec
+    widzimy kazde wywolanie, a nie tylko stan po calym kroku.
+    """
+    from homm3 import rdzen as R
+    from homm3 import klasa1_czary as K1
+    from homm3 import klasa3_ataki as K3
+
+    oryginal = R.zadaj_obrazenia
+
+    def sledzone(state, dfn, dmg):
+        przed_c = state.count[dfn]
+        przed_h = state.hp_left[dfn]
+        nowy, przezyl, zadane = oryginal(state, dfn, dmg)
+        po_c = nowy.count[dfn]
+        po_h = nowy.hp_left[dfn]
+        mh = jnp.maximum(state.max_hp[dfn], 1)
+        niekanoniczna = (po_c > 0) & ((po_h < 1) | (po_h > mh))
+        wzrosla = po_c > state.count_start[dfn]
+        jax.lax.cond(
+            niekanoniczna | wzrosla,
+            lambda: jax.debug.print(
+                "  [obrazenia] stos={d} dmg={g} max_hp={m} "
+                "przed=({pc},{ph}) po=({oc},{oh}) poczatkowa={s} "
+                "niekanoniczna={n} wzrosla={w}",
+                d=dfn, g=dmg, m=state.max_hp[dfn], pc=przed_c, ph=przed_h,
+                oc=po_c, oh=po_h, s=state.count_start[dfn],
+                n=niekanoniczna, w=wzrosla),
+            lambda: None)
+        return nowy, przezyl, zadane
+
+    R.zadaj_obrazenia = sledzone
+    K1.zadaj_obrazenia = sledzone
+    if hasattr(K3, "zadaj_obrazenia"):
+        K3.zadaj_obrazenia = sledzone
+    print("  [sledzenie zalozone na zadaj_obrazenia]")
+
+
+def odtworz(preset, gier, ziarno, maks_krokow, sledz=False):
+    if sledz:
+        zaloz_sledzenie()
     kfg = PRESETY[preset]
     env = zbuduj(kfg)
     init = jax.jit(env.init)
@@ -240,6 +345,8 @@ def main():
     p.add_argument("--gier", type=int, default=200)
     p.add_argument("--ziarno", type=int, default=0)
     p.add_argument("--maks-krokow", type=int, default=400)
+    p.add_argument("--sledz", action="store_true",
+                   help="wypisuj kazde wywolanie, ktore psuje zapis liczebnosci")
     p.add_argument("--tylko-pula", action="store_true",
                    help="sprawdz tablice i wyjdz, bez odtwarzania partii")
     a = p.parse_args()
@@ -251,7 +358,7 @@ def main():
         print("\n  Tablica ma niemozliwe wartosci - to najpewniej zrodlo")
         print("  naruszenia. Odtwarzam partie, zeby to potwierdzic.")
 
-    czyste = odtworz(a.preset, a.gier, a.ziarno, a.maks_krokow)
+    czyste = odtworz(a.preset, a.gier, a.ziarno, a.maks_krokow, a.sledz)
     sys.exit(0 if (czyste and pula_ok) else 1)
 
 

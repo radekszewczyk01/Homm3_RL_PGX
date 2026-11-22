@@ -97,6 +97,83 @@ def stan_testowy(env, atak=10, obrona=10, min_dmg=2, max_dmg=10,
     )
 
 
+def test_zapis_liczebnosci():
+    """Para (liczebnosc, zycie czola) musi zostac kanoniczna.
+
+    Liczebnosc i zycie czola to jedna liczba zapisana na dwa sposoby:
+
+        zycie_razem = (liczebnosc - 1) * max_hp + zycie_czola
+
+    i zapis jest kanoniczny, gdy zycie_czola miesci sie w [1, max_hp].
+    Zapis (4, 0) przy max_hp 30 opisuje te same 90 punktow co (3, 30), ale
+    liczebnosc wychodzi ponad poczatkowa i stos wyglada jak zmartwychwstaly.
+
+    TEN TEST MA SENS TYLKO NA KARCIE. Przeliczenie liczebnosci robilo kiedys
+    sufit przez float - `ceil(zycie / max_hp)`. XLA na procesorze dzieli
+    dokladnie, wiec na procesorze bylo dobrze. Na karcie XLA mnozy przez
+    przyblizona odwrotnosc: 90 * fl(1/30) = 3.0000002, a sufit z tego to 4.
+    Dlatego trzymamy tu sufit calkowity, a test przechodzi przez prawdziwe
+    `zadaj_obrazenia`, nie przez przepisana arytmetyke.
+    """
+    print("\n--- zapis liczebnosci stosu (sufit calkowity, nie float) ---")
+    from homm3.rdzen import zadaj_obrazenia
+
+    kfg = Konfiguracja(nazwa="test_zapisu",
+                       **{m: False for m in
+                          ("oddech", "trojglowy", "dookolny", "wyssanie",
+                           "powrot", "podwojny_atak", "kara_zwarcia",
+                           "bez_kary_zwarcia", "wielokrotny_kontratak")})
+    env = zbuduj(kfg)
+
+    # Jeden stan i jedno skompilowane jadro na wszystkie przypadki: liczebnosc,
+    # zdrowie i obrazenia wchodza jako argumenty, wiec nie ma rekompilacji.
+    baza = stan_testowy(env, hp=100, liczebnosc=1)
+
+    @jax.jit
+    def przelicz(c, hp, dmg):
+        st = baza.replace(
+            count=baza.count.at[0].set(c),
+            count_start=baza.count_start.at[0].set(c),
+            max_hp=baza.max_hp.at[0].set(hp),
+            hp_left=baza.hp_left.at[0].set(hp))
+        nowy, _, _ = zadaj_obrazenia(st, 0, dmg)
+        return nowy.count[0], nowy.hp_left[0]
+
+    # Wielokrotnosci, ktore psula sie przy mnozeniu przez odwrotnosc.
+    przypadki = [(hp, c) for hp in (7, 11, 13, 15, 25, 30, 35, 50, 100)
+                 for c in (1, 2, 3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 19, 20)]
+
+    zle_zero, zle_kanon, zle_ponad = [], [], []
+    for hp, c in przypadki:
+        # stos nietkniety: zero obrazen nie moze niczego zmienic
+        nc, nh = przelicz(c, hp, 0)
+        nc, nh = int(nc), int(nh)
+        if (nc, nh) != (c, hp):
+            zle_zero.append(f"hp={hp} c={c}: ({c},{hp}) -> ({nc},{nh})")
+        if nc > c:
+            zle_ponad.append(f"hp={hp} c={c} -> {nc}")
+        # dowolne obrazenia: zapis musi zostac kanoniczny
+        for dmg in (1, hp - 1, hp, hp + 1, 2 * hp, c * hp - 1):
+            if dmg <= 0 or dmg >= c * hp:
+                continue
+            nc, nh = przelicz(c, hp, dmg)
+            nc, nh = int(nc), int(nh)
+            razem = (nc - 1) * hp + nh
+            if not (1 <= nh <= hp) or razem != c * hp - dmg:
+                zle_kanon.append(f"hp={hp} c={c} dmg={dmg} -> ({nc},{nh})"
+                                 f" razem={razem} zamiast {c * hp - dmg}")
+
+    sprawdz(not zle_zero, "zero obrazen nie zmienia zapisu",
+            f"{len(zle_zero)} z {len(przypadki)} zlych"
+            + (f"; np. {zle_zero[0]}" if zle_zero else ""))
+    sprawdz(not zle_ponad, "liczebnosc nigdy nie rosnie od obrazen",
+            f"{len(zle_ponad)} zlych"
+            + (f"; np. {zle_ponad[0]}" if zle_ponad else ""))
+    sprawdz(not zle_kanon, "zycie czola zostaje w przedziale [1, max_hp]",
+            f"{len(zle_kanon)} zlych"
+            + (f"; np. {zle_kanon[0]}" if zle_kanon else ""))
+
+
 def rozklad_ciosow(env, st, prob=400):
     """Rozklad obrazen z ciosu jednostki 0 w jednostke 7."""
     kfg, haki = env.kfg, env.haki
@@ -539,6 +616,7 @@ def main():
     args = p.parse_args()
 
     print(f"zaplecze: {jax.default_backend()}")
+    test_zapis_liczebnosci()
     test_klasa2()
     test_klasa3()
     test_klasa1()

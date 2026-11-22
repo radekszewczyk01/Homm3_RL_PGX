@@ -181,7 +181,9 @@ def _ulecz(state, i, ile):
     pulap = state.count_start[i] * state.max_hp[i]
     nowe = jnp.minimum(total_hp(state, i) + ile, pulap)
     nowe = jnp.maximum(nowe, 1)
-    nowy_count = jnp.ceil(nowe / jnp.maximum(state.max_hp[i], 1)).astype(jnp.int32)
+    # sufit calkowity - patrz komentarz w rdzen.zadaj_obrazenia
+    mh = jnp.maximum(state.max_hp[i], 1)
+    nowy_count = (nowe + mh - 1) // mh
     nowe_hp = nowe - (nowy_count - 1) * state.max_hp[i]
     ok = state.alive[i] & (ile > 0)
     return state.replace(
