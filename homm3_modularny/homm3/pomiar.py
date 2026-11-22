@@ -34,6 +34,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from . import rdzen
 from .rdzen import MAX_UNITS, bajtow_stanu
 
 
@@ -528,6 +529,12 @@ def otoczenie() -> dict:
     """
     import jaxlib
     return {
+        # Pula wchodzi do kazdego pliku wynikow, bo niewidoczny powrot do puli
+        # awaryjnej raz juz unieważnil zestaw pomiarow. Teraz widac to w danych.
+        "pula_zrodlo": rdzen.POOL_ZRODLO,
+        "pula_awaryjna": bool(rdzen.POOL_AWARYJNA),
+        "pula_stworow": int(rdzen.POOL.shape[0]),
+        "pula_max_szybkosc": int(np.asarray(rdzen.POOL)[:, rdzen.P_SPD].max()),
         "host": platform.node(),
         "python": platform.python_version(),
         "jax": jax.__version__,

@@ -165,6 +165,21 @@ def cmd_zgodnosc(args):
                   "repozytorium.")
         ok &= zgoda_czasu
 
+    # Pula awaryjna uniewaznia porownanie z praca: inna liczba stworow, inne
+    # szybkosci, inny rozklad zdolnosci. Rozmiar stanu i przestrzen akcji od
+    # niej nie zaleza, wiec sprawdzenia powyzej przechodza i mozna tego nie
+    # zauwazyc - dlatego osobny, jawny warunek.
+    from homm3 import rdzen as _rdzen
+    print(f"\n  pula stworow: {_rdzen.POOL.shape[0]} z {_rdzen.POOL_ZRODLO}")
+    if _rdzen.POOL_AWARYJNA:
+        print("  BLAD  to pula AWARYJNA, nie twoja tablica stworow.")
+        print("        Liczby zalezne od puli - dlugosc epizodu, akcje")
+        print("        dopuszczalne, pokrycie mechanik - beda inne niz w pracy.")
+        print("        Skopiuj homm3_static_lut.npy do data/ albo ustaw HOMM3_LUT.")
+        ok = False
+    else:
+        print("  OK    prawdziwa tablica stworow")
+
     # kontrola niezmiennikow na losowych partiach
     print(f"\n  losowe partie z kontrola niezmiennikow ({args.gier} gier)...")
     wynik_gier = _rozegraj(env, args.gier, args.krokow)

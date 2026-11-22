@@ -28,6 +28,8 @@ programy, a nie dwie sciezki w jednym.
 
 import dataclasses
 import functools
+import os
+import sys
 from enum import IntEnum
 from typing import Callable, List, Tuple
 
@@ -226,21 +228,81 @@ _FALLBACK = np.array([
 ], dtype=np.float32)
 
 
-def load_pool(lut_path="data/homm3_static_lut.npy", vmin=60.0, vmax=700.0,
+# Gdzie szukamy tablicy stworow. Kilka miejsc, bo katalog roboczy zalezy od
+# tego, co zamontowano do kontenera - raz jest to homm3_modularny, raz korzen
+# repozytorium. Niewidoczny powrot do puli awaryjnej raz juz kosztowal nas
+# przebieg pomiarow policzony na dwunastu stworach zamiast stu jednym.
+SCIEZKI_LUT = (
+    os.environ.get("HOMM3_LUT", ""),
+    "data/homm3_static_lut.npy",
+    "../data/homm3_static_lut.npy",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 "data", "homm3_static_lut.npy"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), "data", "homm3_static_lut.npy"),
+)
+
+POOL_ZRODLO = "nie wczytano"       # skad przyszla pula; wchodzi do wynikow
+POOL_AWARYJNA = True               # czy to pula zastepcza
+
+
+def load_pool(lut_path=None, vmin=60.0, vmax=700.0,
               drop_unknown=False, cicho=False):
-    """Zwraca tablice (N, 20) cech stworow dopuszczonych do symulacji."""
-    try:
-        lut = np.load(lut_path)
-    except (FileNotFoundError, OSError):
-        if not cicho:
-            print(f"[uwaga] brak {lut_path}, uzywam puli awaryjnej "
-                  f"({_FALLBACK.shape[0]} stworow)")
+    """Zwraca tablice (N, 20) cech stworow dopuszczonych do symulacji.
+
+    Szuka tablicy w kilku miejscach (SCIEZKI_LUT), bo katalog roboczy zalezy
+    od montazu kontenera. Jesli nie znajdzie, uzywa puli awaryjnej i MOWI
+    O TYM GLOSNO, na standardowe wyjscie bledow - zawsze, nawet przy
+    cicho=True. Pula awaryjna ma dwanascie stworow wobec stu jednego
+    w prawdziwej tablicy, inne szybkosci i inny rozklad zdolnosci, wiec
+    kazda liczba zalezna od zawartosci puli bedzie z nia inna.
+
+    Co od puli NIE zalezy: rozmiar stanu, przestrzen akcji, liczba operacji
+    i bajtow w skompilowanym programie, slad pamieciowy jadra. To sa wlasnosci
+    KSZTALTOW, a kształty sa takie same. Zalezy od niej natomiast dlugosc
+    epizodu, rozklad liczby akcji dopuszczalnych i pokrycie mechanik.
+    """
+    global POOL_ZRODLO, POOL_AWARYJNA
+
+    kandydaci = ([lut_path] if lut_path else
+                 [s for s in SCIEZKI_LUT if s])
+    lut = None
+    for sciezka in kandydaci:
+        try:
+            lut = np.load(sciezka)
+            POOL_ZRODLO = os.path.abspath(sciezka)
+            break
+        except (FileNotFoundError, OSError):
+            continue
+
+    if lut is None:
+        POOL_ZRODLO = f"pula awaryjna ({_FALLBACK.shape[0]} stworow)"
+        POOL_AWARYJNA = True
+        # To ostrzezenie jest wazniejsze od czystosci wydruku, wiec idzie
+        # na stderr ZAWSZE - stdout zostaje czysty dla JSON-a.
+        print("=" * 70, file=sys.stderr)
+        print("[UWAGA] NIE ZNALAZLEM TABLICY STWOROW - uzywam puli awaryjnej",
+              file=sys.stderr)
+        print(f"        {_FALLBACK.shape[0]} stworow zamiast ~101.",
+              file=sys.stderr)
+        print("        Szukalem w:", file=sys.stderr)
+        for s in kandydaci:
+            print(f"          {os.path.abspath(s)}", file=sys.stderr)
+        print("        Liczby zalezne od zawartosci puli (dlugosc epizodu,",
+              file=sys.stderr)
+        print("        akcje dopuszczalne, pokrycie mechanik) BEDA INNE.",
+              file=sys.stderr)
+        print("        Napraw: skopiuj plik do data/ albo ustaw HOMM3_LUT.",
+              file=sys.stderr)
+        print("=" * 70, file=sys.stderr)
         return jnp.array(_FALLBACK)
+
+    POOL_AWARYJNA = False
 
     if lut.shape[1] < len(Stat):
         raise ValueError(
             f"LUT ma {lut.shape[1]} kolumn, potrzeba {len(Stat)}. "
-            f"Przegeneruj tablice nowym main.py.")
+            f"Przegeneruj tablice nowym main.py. Plik: {POOL_ZRODLO}")
 
     ok = ((lut[:, Stat.HP] > 0)
           & (lut[:, Stat.AI_VALUE] >= vmin)
@@ -254,7 +316,7 @@ def load_pool(lut_path="data/homm3_static_lut.npy", vmin=60.0, vmax=700.0,
     out[:, P_RETAL] = np.maximum(out[:, P_RETAL], 1.0)
 
     if not cicho:
-        print(f"[pula] {out.shape[0]} stworow  "
+        print(f"[pula] {out.shape[0]} stworow z {POOL_ZRODLO}  "
               f"(2hex {int(out[:, P_TWO].sum())}, "
               f"strzelcy {int(out[:, P_SHOOT].sum())}, "
               f"latacze {int(out[:, P_FLY].sum())}, "
